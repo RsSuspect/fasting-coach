@@ -1,4 +1,4 @@
-# Fasting Coach Roadmap
+# Fitness Coach Roadmap
 
 ## Guiding Philosophy
 

@@ -1,8 +1,8 @@
-# Fasting Coach Screen Specifications
+# Fitness Coach Screen Specifications
 
 ## Purpose
 
-This document defines the content, hierarchy, primary actions, and expected behaviour of each major screen in Fasting Coach.
+This document defines the content, hierarchy, primary actions, and expected behaviour of each major screen in Fitness Coach.
 
 It should be read together with:
 

@@ -1,8 +1,8 @@
-# Fasting Coach Product Blueprint
+# Fitness Coach Product Blueprint
 
 ## 1. Executive Summary
 
-Fasting Coach is a mobile-first personal weight-loss and fasting companion.
+Fitness Coach is a mobile-first personal weight-loss and fasting companion.
 
 It combines:
 
@@ -29,7 +29,7 @@ The app should reduce decision-making, encourage consistency, and make daily pro
 
 ## 2. Product Vision
 
-Fasting Coach should feel like a calm, supportive personal coach.
+Fitness Coach should feel like a calm, supportive personal coach.
 
 It should:
 

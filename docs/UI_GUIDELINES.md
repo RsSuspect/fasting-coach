@@ -2,7 +2,7 @@
 
 ## Purpose
 
-These guidelines define the visual language and interaction principles for Fasting Coach.
+These guidelines define the visual language and interaction principles for Fitness Coach.
 
 Every screen should feel like part of the same application.
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the persistent data used by Fasting Coach.
+This document defines the persistent data used by Fitness Coach.
 
 The goals are:
 

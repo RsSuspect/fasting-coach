@@ -2,7 +2,7 @@
 
 ## Purpose
 
-You are contributing to the Fasting Coach project.
+You are contributing to the Fitness Coach project.
 
 Before making any code changes, read the project documentation.
 
@@ -28,7 +28,7 @@ Follow them unless the current task explicitly overrides them.
 
 # Project Overview
 
-Fasting Coach is a mobile-first Progressive Web App.
+Fitness Coach is a mobile-first Progressive Web App.
 
 Technology:
 

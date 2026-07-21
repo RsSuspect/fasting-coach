@@ -301,7 +301,7 @@
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `fasting-coach-backup-${FC.app.dateKey}.json`;
+    link.download = `fitness-coach-backup-${FC.app.dateKey}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();

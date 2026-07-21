@@ -154,7 +154,7 @@
       data[key] = localStorage.getItem(key);
     }
     return {
-      app: "Fasting Coach",
+      app: "Fitness Coach",
       version: APP_VERSION,
       exportedAt: new Date().toISOString(),
       data
@@ -162,8 +162,8 @@
   }
 
   function validateBackup(backup) {
-    if (!backup || typeof backup!=="object" || Array.isArray(backup) || backup.app!=="Fasting Coach" || !backup.data || typeof backup.data!=="object" || Array.isArray(backup.data)) {
-      throw new Error("This is not a valid Fasting Coach backup.");
+    if (!backup || typeof backup!=="object" || Array.isArray(backup) || !["Fitness Coach","Fasting Coach"].includes(backup.app) || !backup.data || typeof backup.data!=="object" || Array.isArray(backup.data)) {
+      throw new Error("This is not a valid Fitness Coach backup.");
     }
     Object.entries(backup.data).forEach(([key,value])=>{
       if (typeof key!=="string" || typeof value!=="string") {

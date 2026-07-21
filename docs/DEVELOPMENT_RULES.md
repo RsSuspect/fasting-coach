@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the engineering standards for Fasting Coach.
+This document defines the engineering standards for Fitness Coach.
 
 Every future feature should follow these rules unless there is a deliberate architectural decision to change them.
 

@@ -1,4 +1,4 @@
-FASTING COACH — IPHONE SETUP
+FITNESS COACH — IPHONE SETUP
 
 Option A: Open directly
 1. Put these files on any basic web host.
