@@ -1,4 +1,4 @@
-const CACHE="fasting-coach-v9";
+const CACHE="fasting-coach-v14";
 const FILES=[
   "./index.html",
   "./styles.css",

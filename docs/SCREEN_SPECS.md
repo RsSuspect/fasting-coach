@@ -88,6 +88,40 @@ When errors occur:
 
 The Today screen is the main dashboard.
 
+## Current Presentation Structure
+
+The implemented Today dashboard uses this visual hierarchy while preserving the existing feature set:
+
+1. Compact product header and settings action
+2. Daily nutrition summary as the primary action card
+3. Current weight and goal progress as a supporting card
+4. Today's schedule
+5. Daily checklist
+6. Water tracking
+
+On phones the summary cards stack. At wider widths they share a row, with nutrition receiving greater width and elevation. The Add Meal control is the dominant action. Every progress visual retains nearby visible text and an accessible progress value.
+
+### Refined Today Presentation
+
+The calorie summary is the hero and includes a circular completion ring, consumed calories, target, remaining calories or overage, percentage, and Add Meal. The ring caps at full circumference when over target while text reports the actual percentage and overage.
+
+Within the refined hero, the ring contains only consumed calories, `kcal`, and percentage. Remaining calories and target appear immediately below the ring on phones, or in a balanced adjacent summary on sufficiently wide desktop cards. Consumed calories remain the dominant metric. Macros and meal totals are visually separated and secondary.
+
+Hero states are:
+
+- Incomplete: preserve consumed calories, replace percentage with an unavailable mark, omit contradictory remaining/target progress, and show concise profile guidance.
+- Under target: show actual percentage, remaining calories, and target.
+- At target: show 100%, zero remaining, and target.
+- Over target: cap the ring visually, report the actual percentage, show the overage and target, and retain calm warning language.
+
+The live timeline marker keeps its calculated line and rail dot at the exact time position. When the time badge approaches an event centre, the badge alone moves above or below the line, away from the nearby event. This collision treatment applies to Today and today's expanded Weekly Calendar timeline without hiding event labels or the current-time value.
+
+Weight is a compact supporting card with current weight, goal, amount remaining, and the latest measured change when multiple records exist. A small point-to-point sparkline appears only with sufficient stored data. Water is a compact utility card with eight visual steps and retained readable totals and controls.
+
+The weight card sizes to its content and does not stretch to match the calorie hero on wider screens. With zero or one recorded measurement it reserves no sparkline space; with multiple measurements it shows only the real point-to-point history.
+
+Today's schedule is a concise overview containing every existing schedule entry with compact static rows. For the current local date, it shows a live current-time line positioned from actual schedule times, slightly mutes elapsed events, identifies the active interval, and marks the next event without implying completion. The time context refreshes at least once per minute and whenever the page becomes visible again.
+
 It should answer these questions within five seconds:
 
 - How many calories do I have today?
@@ -350,6 +384,10 @@ Each logged item should support:
 - duplicate
 - move to another meal
 - delete
+
+The implemented meal sections use compact rows. Empty meals show zero calories, a short `No entries` state, and an Add control without reserving excess vertical space. Logged entries remain touch-friendly and do not become separate cards.
+
+Existing Meal ideas are secondary to daily logging and are collapsed by default in a native expandable section. Sunday meal preparation remains a secondary card.
 
 Destructive actions should require confirmation or an undo mechanism.
 
@@ -655,6 +693,8 @@ When insufficient data exists:
 
 Keep logging for a few more days to unlock meaningful trends.
 
+For the implemented weight history, a single entry is rendered as one clearly visible centred point with a short prompt explaining that another weigh-in will reveal a trend. Multiple entries use straight point-to-point segments so the chart does not imply measurements between recorded dates.
+
 ---
 
 # 9. Settings Screen
@@ -943,6 +983,10 @@ At all widths:
 - no horizontal scrolling
 - no clipped controls
 - no overlapping navigation
+
+Dashboard grids align unequal cards to the start so compact supporting cards are not stretched to the height of hero content. Timeline rails, current-time dots, labels, and event copy must remain aligned without horizontal overflow from 320px upward.
+
+In Weekly calendar, only today's expanded timeline shows the live current-time marker. Other days retain their normal schedule presentation. Expanding or collapsing a day, returning to Calendar, or resizing the viewport recalculates the marker position; today is not forcibly expanded solely for the marker.
 
 ---
 

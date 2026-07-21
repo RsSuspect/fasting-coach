@@ -15,6 +15,7 @@
 <header>
   <div class="header-row">
     <div>
+      <span class="brand-kicker">Your daily performance plan</span>
       <h1>Fitness Coach</h1>
       <p id="headerSummary">115 kg → 80 kg · 1,800 kcal · 16:8 schedule</p>
     </div>
@@ -29,19 +30,23 @@
 
 <main>
   <section id="today" class="view active">
-    <div class="grid two">
-      <div class="card">
-        <div class="sub">Current weight</div>
-        <div class="metric"><span id="currentWeight">115.0</span> <span id="currentWeightUnit">kg</span></div>
+    <div class="grid two today-overview">
+      <div class="card weight-card">
+        <div class="card-heading-row"><div><div class="eyebrow">Progress</div><h2>Weight</h2></div><span class="pill" id="weightGoalSummary">Goal 80 kg</span></div>
+        <div class="weight-card-body"><div><div class="metric"><span id="currentWeight">115.0</span> <span id="currentWeightUnit">kg</span></div>
         <div class="progress"><div id="weightProgress"></div></div>
-        <div class="sub" id="weightMessage" style="margin-top:8px;"></div>
+        <div class="sub" id="weightMessage"></div><div class="weight-change" id="weightChange"></div></div>
+        <canvas id="weightSparkline" width="220" height="80" aria-label="Recent weight trend" role="img"></canvas></div>
       </div>
-      <div class="card">
-        <div class="sub">Today’s nutrition</div>
-        <div class="metric"><span id="todayCaloriesConsumed">0</span> <span class="metric-unit">kcal</span></div>
-        <div class="sub" id="todayCalorieTarget">No calorie target yet</div>
-        <div class="progress nutrition-progress" role="progressbar" aria-label="Calorie progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="calorieProgress"></div></div>
-        <div class="sub" id="todayCalorieStatus">Complete your nutrition profile to calculate a target.</div>
+      <div class="card nutrition-hero">
+        <div class="eyebrow">Today’s nutrition</div>
+        <div class="nutrition-hero-layout">
+          <div class="calorie-ring" role="progressbar" aria-label="Calorie progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="50"></circle><circle class="ring-value" id="calorieProgress" cx="60" cy="60" r="50"></circle></svg>
+            <div class="ring-content"><strong><span id="todayCaloriesConsumed">0</span></strong><span>kcal</span><b id="caloriePercentage">0%</b></div>
+          </div>
+          <div class="calorie-summary"><strong id="calorieRemaining">Profile needed</strong><div class="sub" id="todayCalorieTarget">Complete nutrition profile in Settings</div><div class="sub" id="todayCalorieStatus">Complete your nutrition profile to unlock target-based progress.</div></div>
+        </div>
         <div class="macro-grid" id="todayMacroTotals"></div>
         <div class="meal-total-grid" id="todayMealTotals"></div>
         <button id="todayAddMeal" type="button" class="compact-action">Add Meal</button>
@@ -49,7 +54,7 @@
       </div>
     </div>
 
-    <div class="card" style="margin-top:12px;">
+    <div class="card schedule-card" style="margin-top:12px;">
       <h2>Today’s schedule</h2>
       <div id="todaySchedule" class="timeline"></div>
     </div>
@@ -59,8 +64,9 @@
       <div id="dailyChecklist"></div>
     </div>
 
-    <div class="card" style="margin-top:12px;">
+    <div class="card utility-card water-card" style="margin-top:12px;">
       <h2>Water</h2>
+      <div class="water-steps" id="waterSteps" aria-hidden="true"></div>
       <div class="row">
         <div><span class="metric" id="waterCount">0</span><span class="sub"> / 8 glasses</span></div>
         <button id="addWater">+ Glass</button>
@@ -87,10 +93,10 @@
     </div>
     <div id="foodMealSections" class="food-meals"></div>
 
-    <div class="card recipe">
-      <h2>Existing meal ideas</h2>
-
-      <details open>
+    <details class="card recipe-library">
+      <summary><span><strong>Meal ideas</strong><small>Five existing recipes with ingredients and methods</small></span></summary>
+      <div class="recipe">
+      <details>
         <summary>Chicken Power Bowl · ~700 kcal</summary>
         <h3>Ingredients</h3>
         <ul>
@@ -136,7 +142,8 @@
         <ul><li>250 g chicken</li><li>2 wholemeal wraps</li><li>Lettuce, tomato, cucumber</li><li>30 g light mayonnaise</li></ul>
         <ol><li>Cook and slice chicken.</li><li>Warm wraps, add salad and chicken, then roll.</li></ol>
       </details>
-    </div>
+      </div>
+    </details>
 
     <div class="card" style="margin-top:12px;">
       <h2>Sunday meal prep</h2>
@@ -170,17 +177,18 @@
     <div class="card" style="margin-top:12px;">
       <h2>Weight history</h2>
       <canvas id="weightChart" width="700" height="260"></canvas>
+      <p class="sub chart-message" id="weightChartMessage"></p>
       <div id="weightHistory"></div>
     </div>
   </section>
 </main>
 
-<nav class="tabs">
-  <button class="tab active" data-view="today">Today</button>
-  <button class="tab" data-view="calendar">Calendar</button>
-  <button class="tab" data-view="meals">Food</button>
-  <button class="tab" data-view="gym">Gym</button>
-  <button class="tab" data-view="progress">Progress</button>
+<nav class="tabs" aria-label="Primary navigation">
+  <button class="tab active" data-view="today"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h4l2-7 4 12 2-5h4"></path></svg><span>Today</span></button>
+  <button class="tab" data-view="calendar"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg><span>Calendar</span></button>
+  <button class="tab" data-view="meals"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v8M4 3v5c0 2 1 3 3 3s3-1 3-3V3M7 11v10M16 3v18M16 3c3 1 4 4 4 7h-4"></path></svg><span>Food</span></button>
+  <button class="tab" data-view="gym"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12"></path></svg><span>Gym</span></button>
+  <button class="tab" data-view="progress"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"></path></svg><span>Progress</span></button>
 </nav>
 
 <div class="settings-overlay" id="foodDialogOverlay" hidden>
