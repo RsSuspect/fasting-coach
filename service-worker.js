@@ -1,4 +1,4 @@
-const CACHE="fasting-coach-v2";
+const CACHE="fasting-coach-v3";
 const FILES=["./index.html","./manifest.json"];
 
 function isCacheable(response) {
