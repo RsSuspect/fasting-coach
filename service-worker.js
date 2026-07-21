@@ -1,9 +1,10 @@
-const CACHE="fasting-coach-v4";
+const CACHE="fasting-coach-v6";
 const FILES=[
   "./index.html",
   "./styles.css",
   "./storage.js",
   "./theme.js",
+  "./nutrition.js",
   "./app.js",
   "./settings.js",
   "./manifest.json"

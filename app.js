@@ -19,9 +19,9 @@
   const today = new Date();
   const day = today.getDay();
   const dateKey = today.toISOString().slice(0,10);
-  const checklistItems = [
-    "Stay near 1,800 kcal",
-    "Reach 180 g protein",
+  const checklistFallbacks = [
+    "Stay within your calorie goal",
+    "Include a good protein source with your meals",
     "Drink 2.5–3.5 L water",
     "Complete workout or walk",
     "Reach your step goal",
@@ -66,10 +66,27 @@
       </details>`).join("");
   }
 
+  function getChecklistItems() {
+    const nutrition = FC.state.settings.nutrition;
+    const result = FC.nutrition.calculate(nutrition);
+    if (!result.complete) return checklistFallbacks;
+    const calorieTarget = nutrition.calorieMode==="manual"
+      ? Math.round(nutrition.manualCalorieTarget)
+      : result.suggestedCalorieTarget;
+    const proteinTarget = Number(nutrition.proteinTargetGrams);
+    return [
+      `Stay near ${calorieTarget.toLocaleString()} kcal`,
+      Number.isFinite(proteinTarget) && proteinTarget>0
+        ? `Reach ${Math.round(proteinTarget).toLocaleString()} g protein`
+        : checklistFallbacks[1],
+      ...checklistFallbacks.slice(2)
+    ];
+  }
+
   function renderChecklist() {
     const saved = FC.storage.getChecklist(dateKey);
     const container = document.getElementById("dailyChecklist");
-    container.innerHTML = checklistItems.map((item,index)=>`
+    container.innerHTML = getChecklistItems().map((item,index)=>`
       <label class="check"><input type="checkbox" data-i="${index}" ${saved[index] ? "checked" : ""}><span>${item}</span></label>
     `).join("");
     container.querySelectorAll("input").forEach(box=>box.addEventListener("change",event=>{
@@ -94,6 +111,28 @@
 
   function getWeights() {
     return FC.storage.getWeights(dateKey,FC.state.settings.profile.startingWeightKg);
+  }
+
+  function latestWeightKg() {
+    const weights = getWeights();
+    return weights.length ? Number(weights[weights.length-1].weight) : FC.state.settings.profile.startingWeightKg;
+  }
+
+  function renderNutritionSummary() {
+    const result = FC.nutrition.calculate(FC.state.settings.nutrition);
+    const target = document.getElementById("todayCalorieTarget");
+    const mealSummary = document.getElementById("todayMealSummary");
+    const action = document.getElementById("completeNutritionProfile");
+    if (result.complete) {
+      target.textContent = `${result.suggestedCalorieTarget.toLocaleString()} kcal`;
+      mealSummary.textContent = `${FC.state.settings.nutrition.mealsPerDay} meals per day · about ${result.caloriesPerMeal.toLocaleString()} kcal per meal`;
+      action.hidden = true;
+    } else {
+      target.textContent = "—";
+      mealSummary.textContent = "Complete your nutrition profile to calculate a daily target.";
+      action.hidden = false;
+    }
+    return result;
   }
 
   function renderProgress() {
@@ -162,7 +201,9 @@
   function renderSettingsSummary() {
     const settings = FC.state.settings;
     const protocol = settings.fasting.protocol==="Custom" ? `${settings.fasting.customHours}h fast` : settings.fasting.protocol;
-    document.getElementById("headerSummary").textContent = `${compactWeight(settings.profile.startingWeightKg)} ${unitLabel()} → ${compactWeight(settings.profile.goalWeightKg)} ${unitLabel()} · 1,800 kcal · ${protocol} schedule`;
+    const nutrition = renderNutritionSummary();
+    const calorieSummary = nutrition.complete ? `${nutrition.suggestedCalorieTarget.toLocaleString()} kcal` : "Nutrition profile needed";
+    document.getElementById("headerSummary").textContent = `${compactWeight(settings.profile.startingWeightKg)} ${unitLabel()} → ${compactWeight(settings.profile.goalWeightKg)} ${unitLabel()} · ${calorieSummary} · ${protocol} schedule`;
     const weightInput = document.getElementById("weightInput");
     weightInput.placeholder = settings.profile.weightUnit==="lb" ? "e.g. 247.8" : "e.g. 112.4";
     weightInput.min = settings.profile.weightUnit==="lb" ? "40" : "18";
@@ -173,12 +214,12 @@
     FC.theme.apply();
     renderSettingsSummary();
     renderProgress();
+    renderChecklist();
   }
 
   function reloadStoredState() {
     FC.state.settings = FC.storage.loadSettings();
     water = FC.storage.getWater(dateKey);
-    renderChecklist();
     renderWater();
     refreshForSettings();
   }
@@ -193,6 +234,7 @@
     FC.storage.saveWater(dateKey,water);
     renderWater();
   });
+  document.getElementById("completeNutritionProfile").addEventListener("click",()=>FC.settings.openNutrition());
   document.getElementById("saveWeight").addEventListener("click",()=>{
     const entered = Number(document.getElementById("weightInput").value);
     const weightKg = toKilograms(entered);
@@ -219,6 +261,8 @@
     toDisplayWeight,
     toKilograms,
     unitLabel,
+    latestWeightKg,
+    renderNutritionSummary,
     renderProgress,
     renderChecklist,
     renderWater,
@@ -229,7 +273,6 @@
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
   renderSchedule();
   renderWeek();
-  renderChecklist();
   renderWorkout();
   renderWater();
   refreshForSettings();

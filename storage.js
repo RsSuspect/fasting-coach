@@ -2,15 +2,34 @@
   "use strict";
 
   const SETTINGS_KEY = "fastingCoachSettings";
-  const APP_VERSION = "1.1.0";
+  const APP_VERSION = "2.0.0";
   const KG_TO_LB = 2.2046226218;
   const FASTING_PROTOCOLS = ["16:8","18:6","20:4","OMAD","24 hours","36 hours","48 hours","72 hours","Custom"];
   const THEMES = ["system","light","dark"];
+  const NUTRITION_SEXES = ["female","male","preferNotToSay"];
+  const ACTIVITY_LEVELS = ["sedentary","light","moderate","very","extra"];
+  const CALORIE_MODES = ["automatic","manual"];
+  const DIETARY_PREFERENCES = ["none","vegetarian","vegan","mediterranean","lowCarbohydrate","keto"];
   const DEFAULT_SETTINGS = {
-    version: 1,
+    version: 2,
     profile: { startingWeightKg: 115, goalWeightKg: 80, weightUnit: "kg" },
     fasting: { protocol: "16:8", customHours: 16, electrolyteReminders: false },
-    appearance: { theme: "system" }
+    appearance: { theme: "system" },
+    nutrition: {
+      age: null,
+      sex: "",
+      heightCm: null,
+      currentWeightKg: null,
+      goalWeightKg: null,
+      activityLevel: "",
+      targetDate: "",
+      calorieMode: "automatic",
+      manualCalorieTarget: null,
+      mealsPerDay: 2,
+      dietaryPreference: "none",
+      proteinTargetGrams: null,
+      fibreTargetGrams: null
+    }
   };
 
   function cloneDefaults() {
@@ -23,6 +42,7 @@
     const profile = value.profile && typeof value.profile==="object" ? value.profile : {};
     const fasting = value.fasting && typeof value.fasting==="object" ? value.fasting : {};
     const appearance = value.appearance && typeof value.appearance==="object" ? value.appearance : {};
+    const nutrition = value.nutrition && typeof value.nutrition==="object" && !Array.isArray(value.nutrition) ? value.nutrition : {};
     const startingWeightKg = Number(profile.startingWeightKg);
     const goalWeightKg = Number(profile.goalWeightKg);
     const customHours = Number(fasting.customHours);
@@ -32,20 +52,48 @@
       safeStart=defaults.profile.startingWeightKg;
       safeGoal=defaults.profile.goalWeightKg;
     }
+    const nullableNumber = (candidate,min,max)=>{
+      if (candidate===null || candidate==="" || candidate===undefined) return null;
+      const number = Number(candidate);
+      return Number.isFinite(number) && number>=min && number<=max ? number : null;
+    };
+    const nutritionSex = NUTRITION_SEXES.includes(nutrition.sex) ? nutrition.sex : defaults.nutrition.sex;
+    let calorieMode = CALORIE_MODES.includes(nutrition.calorieMode) ? nutrition.calorieMode : defaults.nutrition.calorieMode;
+    if (nutritionSex==="preferNotToSay") calorieMode="manual";
     return {
-      version: 1,
+      ...value,
+      version: 2,
       profile: {
+        ...profile,
         startingWeightKg: safeStart,
         goalWeightKg: safeGoal,
         weightUnit: profile.weightUnit==="lb" ? "lb" : "kg"
       },
       fasting: {
+        ...fasting,
         protocol: FASTING_PROTOCOLS.includes(fasting.protocol) ? fasting.protocol : defaults.fasting.protocol,
         customHours: Number.isFinite(customHours) && customHours>=1 && customHours<=168 ? customHours : defaults.fasting.customHours,
         electrolyteReminders: fasting.electrolyteReminders===true
       },
       appearance: {
+        ...appearance,
         theme: THEMES.includes(appearance.theme) ? appearance.theme : defaults.appearance.theme
+      },
+      nutrition: {
+        ...nutrition,
+        age: nullableNumber(nutrition.age,18,120),
+        sex: nutritionSex,
+        heightCm: nullableNumber(nutrition.heightCm,100,250),
+        currentWeightKg: nullableNumber(nutrition.currentWeightKg,18,318),
+        goalWeightKg: nullableNumber(nutrition.goalWeightKg,18,318),
+        activityLevel: ACTIVITY_LEVELS.includes(nutrition.activityLevel) ? nutrition.activityLevel : defaults.nutrition.activityLevel,
+        targetDate: typeof nutrition.targetDate==="string" ? nutrition.targetDate : "",
+        calorieMode,
+        manualCalorieTarget: nullableNumber(nutrition.manualCalorieTarget,500,10000),
+        mealsPerDay: Number.isInteger(Number(nutrition.mealsPerDay)) && Number(nutrition.mealsPerDay)>=1 && Number(nutrition.mealsPerDay)<=5 ? Number(nutrition.mealsPerDay) : defaults.nutrition.mealsPerDay,
+        dietaryPreference: DIETARY_PREFERENCES.includes(nutrition.dietaryPreference) ? nutrition.dietaryPreference : defaults.nutrition.dietaryPreference,
+        proteinTargetGrams: nullableNumber(nutrition.proteinTargetGrams,1,500),
+        fibreTargetGrams: nullableNumber(nutrition.fibreTargetGrams,1,100)
       }
     };
   }
@@ -119,6 +167,26 @@
         if (!profile || !fasting || !appearance || !Number.isFinite(start) || !Number.isFinite(goal) || start<18 || start>318 || goal<18 || goal>318 || start<=goal || !["kg","lb"].includes(profile.weightUnit) || !FASTING_PROTOCOLS.includes(fasting.protocol) || !Number.isFinite(custom) || custom<1 || custom>168 || typeof fasting.electrolyteReminders!=="boolean" || !THEMES.includes(appearance.theme)) {
           throw new Error("The settings entry is invalid.");
         }
+        if (parsed.nutrition!==undefined) {
+          const nutrition = parsed.nutrition;
+          if (!nutrition || typeof nutrition!=="object" || Array.isArray(nutrition)) throw new Error("The nutrition settings entry is invalid.");
+          const normalised = normaliseSettings(parsed).nutrition;
+          const hasInvalidRequiredValue =
+            (nutrition.age!==null && nutrition.age!==undefined && normalised.age===null) ||
+            (nutrition.heightCm!==null && nutrition.heightCm!==undefined && normalised.heightCm===null) ||
+            (nutrition.currentWeightKg!==null && nutrition.currentWeightKg!==undefined && normalised.currentWeightKg===null) ||
+            (nutrition.goalWeightKg!==null && nutrition.goalWeightKg!==undefined && normalised.goalWeightKg===null) ||
+            (nutrition.sex!==undefined && nutrition.sex!=="" && !NUTRITION_SEXES.includes(nutrition.sex)) ||
+            (nutrition.activityLevel!==undefined && nutrition.activityLevel!=="" && !ACTIVITY_LEVELS.includes(nutrition.activityLevel)) ||
+            (nutrition.calorieMode!==undefined && !CALORIE_MODES.includes(nutrition.calorieMode)) ||
+            (nutrition.dietaryPreference!==undefined && !DIETARY_PREFERENCES.includes(nutrition.dietaryPreference)) ||
+            (nutrition.mealsPerDay!==undefined && (!Number.isInteger(Number(nutrition.mealsPerDay)) || Number(nutrition.mealsPerDay)<1 || Number(nutrition.mealsPerDay)>5)) ||
+            (nutrition.manualCalorieTarget!==null && nutrition.manualCalorieTarget!==undefined && normalised.manualCalorieTarget===null) ||
+            (nutrition.proteinTargetGrams!==null && nutrition.proteinTargetGrams!==undefined && normalised.proteinTargetGrams===null) ||
+            (nutrition.fibreTargetGrams!==null && nutrition.fibreTargetGrams!==undefined && normalised.fibreTargetGrams===null) ||
+            (nutrition.targetDate!==undefined && typeof nutrition.targetDate!=="string");
+          if (hasInvalidRequiredValue) throw new Error("The nutrition settings entry is invalid.");
+        }
       } else if (key==="weights") {
         const parsed = JSON.parse(value);
         if (!Array.isArray(parsed) || !parsed.every(item=>item && typeof item.date==="string" && Number.isFinite(Number(item.weight)) && Number(item.weight)>=18 && Number(item.weight)<=318)) {
@@ -152,7 +220,7 @@
     return unit==="lb" ? value/KG_TO_LB : value;
   }
 
-  FC.constants = { SETTINGS_KEY, APP_VERSION, FASTING_PROTOCOLS, THEMES };
+  FC.constants = { SETTINGS_KEY, APP_VERSION, FASTING_PROTOCOLS, THEMES, NUTRITION_SEXES, ACTIVITY_LEVELS, CALORIE_MODES, DIETARY_PREFERENCES };
   FC.storage = {
     cloneDefaults,
     normaliseSettings,
