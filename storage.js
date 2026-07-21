@@ -2,7 +2,7 @@
   "use strict";
 
   const SETTINGS_KEY = "fastingCoachSettings";
-  const APP_VERSION = "2.0.0";
+  const APP_VERSION = "2.1.0";
   const KG_TO_LB = 2.2046226218;
   const FASTING_PROTOCOLS = ["16:8","18:6","20:4","OMAD","24 hours","36 hours","48 hours","72 hours","Custom"];
   const THEMES = ["system","light","dark"];
@@ -134,6 +134,19 @@
     localStorage.setItem("water-"+dateKey,water);
   }
 
+  function getFoodLog() {
+    try {
+      const value = JSON.parse(localStorage.getItem("foodLog") || "{}");
+      return value && typeof value==="object" && !Array.isArray(value) ? value : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function saveFoodLog(foodLog) {
+    localStorage.setItem("foodLog",JSON.stringify(foodLog));
+  }
+
   function collectBackupData() {
     const data = {};
     for (let i=0;i<localStorage.length;i++) {
@@ -192,6 +205,11 @@
         if (!Array.isArray(parsed) || !parsed.every(item=>item && typeof item.date==="string" && Number.isFinite(Number(item.weight)) && Number(item.weight)>=18 && Number(item.weight)<=318)) {
           throw new Error("The weight history is invalid.");
         }
+      } else if (key==="foodLog") {
+        const parsed = JSON.parse(value);
+        if (!parsed || typeof parsed!=="object" || Array.isArray(parsed) || !Object.entries(parsed).every(([date,entries])=>FC.food && FC.food.isValidDateKey(date) && Array.isArray(entries) && entries.every(item=>FC.food.isValidStoredEntry(item,date)))) {
+          throw new Error("The food log is invalid.");
+        }
       } else if (key.startsWith("checklist-")) {
         const parsed = JSON.parse(value);
         if (!parsed || typeof parsed!=="object" || Array.isArray(parsed) || !Object.values(parsed).every(item=>typeof item==="boolean")) {
@@ -232,6 +250,8 @@
     saveChecklist,
     getWater,
     saveWater,
+    getFoodLog,
+    saveFoodLog,
     collectBackupData,
     validateBackup,
     importBackupData,

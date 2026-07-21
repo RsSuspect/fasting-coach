@@ -128,6 +128,29 @@ body.settings-open { overflow:hidden; }
 .confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .about-list { margin:0; padding:0; list-style:none; }
 .compact-action { width:100%; margin-top:10px; }
+.metric-unit { font-size:14px; color:var(--muted); }
+.nutrition-progress { margin:10px 0 7px; }
+.macro-grid, .meal-total-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin-top:10px; }
+.macro-grid div, .meal-total-grid div { padding:8px; border:1px solid var(--line); border-radius:10px; font-size:12px; }
+.macro-grid strong, .meal-total-grid strong { display:block; margin-top:2px; font-size:14px; }
+.food-date-header { display:grid; grid-template-columns:44px 1fr 44px; align-items:end; gap:10px; text-align:center; }
+.food-date-header h2 { margin-bottom:4px; }
+.date-button { width:44px; padding:0; font-size:24px; }
+.food-daily-totals { margin-top:14px; }
+.food-meals { display:grid; gap:12px; margin:12px 0; }
+.meal-header { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.meal-header h2 { margin:0; }
+.meal-entry { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px; padding:11px 0; border-top:1px solid var(--line); }
+.meal-entry-actions { display:flex; gap:6px; align-items:center; }
+.meal-entry-actions button { min-width:44px; padding:7px; }
+.empty-food { margin:12px 0; color:var(--muted); font-size:14px; }
+.food-dialog { width:min(calc(100% - 24px),520px); max-height:calc(100% - 24px); overflow:auto; margin:auto; padding:16px; border-radius:20px; background:var(--bg); }
+.food-form-grid, .macro-inputs { display:grid; gap:12px; }
+.macro-inputs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.food-form-grid label { display:block; margin-bottom:6px; font-weight:600; }
+.field-error { min-height:18px; margin:4px 0 0; color:#b91c1c; font-size:12px; }
+.dialog-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:14px; }
+.over-target { color:var(--warn); font-weight:600; }
 .estimate-label { font-size:.72em; font-weight:500; color:var(--muted); }
 .split-fields { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .split-fields label { display:grid; gap:6px; font-size:13px; }
@@ -151,3 +174,4 @@ body.settings-open { overflow:hidden; }
 }
 .about-list li { padding:4px 0; }
 @media (max-width:520px) { .grid.two { grid-template-columns:1fr; } }
+@media (max-width:360px) { .macro-inputs { grid-template-columns:1fr; } }

@@ -37,9 +37,14 @@
         <div class="sub" id="weightMessage" style="margin-top:8px;"></div>
       </div>
       <div class="card">
-        <div class="sub">Daily calorie target <span class="estimate-label">(estimate)</span></div>
-        <div class="metric" id="todayCalorieTarget">—</div>
-        <div class="sub" id="todayMealSummary">Complete your nutrition profile to calculate a target.</div>
+        <div class="sub">Today’s nutrition</div>
+        <div class="metric"><span id="todayCaloriesConsumed">0</span> <span class="metric-unit">kcal</span></div>
+        <div class="sub" id="todayCalorieTarget">No calorie target yet</div>
+        <div class="progress nutrition-progress" role="progressbar" aria-label="Calorie progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="calorieProgress"></div></div>
+        <div class="sub" id="todayCalorieStatus">Complete your nutrition profile to calculate a target.</div>
+        <div class="macro-grid" id="todayMacroTotals"></div>
+        <div class="meal-total-grid" id="todayMealTotals"></div>
+        <button id="todayAddMeal" type="button" class="compact-action">Add Meal</button>
         <button class="secondary compact-action" id="completeNutritionProfile" type="button">Complete Nutrition Profile</button>
       </div>
     </div>
@@ -72,8 +77,18 @@
   </section>
 
   <section id="meals" class="view">
+    <div class="card">
+      <div class="food-date-header">
+        <button class="secondary date-button" id="previousFoodDay" type="button" aria-label="Previous day">‹</button>
+        <div><h2>Food</h2><label for="foodDate" class="sub">Selected date</label><input id="foodDate" type="date" /></div>
+        <button class="secondary date-button" id="nextFoodDay" type="button" aria-label="Next day">›</button>
+      </div>
+      <div class="food-daily-totals" id="foodDailyTotals" aria-live="polite"></div>
+    </div>
+    <div id="foodMealSections" class="food-meals"></div>
+
     <div class="card recipe">
-      <h2>Meals & recipes</h2>
+      <h2>Existing meal ideas</h2>
 
       <details open>
         <summary>Chicken Power Bowl · ~700 kcal</summary>
@@ -163,10 +178,34 @@
 <nav class="tabs">
   <button class="tab active" data-view="today">Today</button>
   <button class="tab" data-view="calendar">Calendar</button>
-  <button class="tab" data-view="meals">Meals</button>
+  <button class="tab" data-view="meals">Food</button>
   <button class="tab" data-view="gym">Gym</button>
   <button class="tab" data-view="progress">Progress</button>
 </nav>
+
+<div class="settings-overlay" id="foodDialogOverlay" hidden>
+  <section class="food-dialog" id="foodDialog" role="dialog" aria-modal="true" aria-labelledby="foodDialogTitle" tabindex="-1">
+    <div class="settings-header">
+      <h2 id="foodDialogTitle">Add Food</h2>
+      <button class="secondary close-button" id="closeFoodDialog" type="button" aria-label="Close food entry">&times;</button>
+    </div>
+    <form id="foodForm" novalidate>
+      <input id="foodEntryId" type="hidden" />
+      <div class="food-form-grid">
+        <div><label for="foodMeal">Meal</label><select id="foodMeal" aria-describedby="foodMealError"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snacks</option></select><p class="field-error" id="foodMealError"></p></div>
+        <div><label for="foodName">Food or meal name</label><input id="foodName" maxlength="120" autocomplete="off" aria-describedby="foodNameError" /><p class="field-error" id="foodNameError"></p></div>
+        <div><label for="foodCalories">Calories</label><input id="foodCalories" type="number" min="0.1" max="20000" step="0.1" inputmode="decimal" aria-describedby="foodCaloriesError" /><p class="field-error" id="foodCaloriesError"></p></div>
+        <div class="macro-inputs">
+          <div><label for="foodProtein">Protein (g, optional)</label><input id="foodProtein" type="number" min="0" max="1000" step="0.1" inputmode="decimal" aria-describedby="foodProteinError" /><p class="field-error" id="foodProteinError"></p></div>
+          <div><label for="foodCarbohydrate">Carbohydrates (g, optional)</label><input id="foodCarbohydrate" type="number" min="0" max="2000" step="0.1" inputmode="decimal" aria-describedby="foodCarbohydrateError" /><p class="field-error" id="foodCarbohydrateError"></p></div>
+          <div><label for="foodFat">Fat (g, optional)</label><input id="foodFat" type="number" min="0" max="1000" step="0.1" inputmode="decimal" aria-describedby="foodFatError" /><p class="field-error" id="foodFatError"></p></div>
+          <div><label for="foodFibre">Fibre (g, optional)</label><input id="foodFibre" type="number" min="0" max="500" step="0.1" inputmode="decimal" aria-describedby="foodFibreError" /><p class="field-error" id="foodFibreError"></p></div>
+        </div>
+      </div>
+      <div class="dialog-actions"><button class="secondary" id="cancelFoodEntry" type="button">Cancel</button><button type="submit">Save Food</button></div>
+    </form>
+  </section>
+</div>
 
 <div class="settings-overlay" id="settingsOverlay" hidden>
   <aside class="settings-panel" id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" tabindex="-1">
@@ -356,7 +395,7 @@
         <div class="setting-row">
           <ul class="about-list">
             <li><strong>Fasting Coach</strong></li>
-            <li>Version 2.0.0</li>
+            <li>Version 2.1.0</li>
           </ul>
           <p class="setting-help" style="margin:6px 0 0;">Your data is stored locally on this device unless you export it as a JSON backup.</p>
         </div>
@@ -368,6 +407,7 @@
   <script src="storage.js"></script>
   <script src="theme.js"></script>
   <script src="nutrition.js"></script>
+  <script src="food.js"></script>
   <script src="app.js"></script>
   <script src="settings.js"></script>
 </body>

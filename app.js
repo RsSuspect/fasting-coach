@@ -29,6 +29,11 @@
     "Aim for 7–8 hours of sleep"
   ];
   let water = FC.storage.getWater(dateKey);
+  let foodLog = FC.storage.getFoodLog();
+  let selectedFoodDate = dateKey;
+  let foodDialogReturnFocus = null;
+  let foodDialogReturnFocusSelector = "";
+  let foodDialogOrigin = "meals";
 
   function unitLabel() {
     return FC.state.settings.profile.weightUnit==="lb" ? "lb" : "kg";
@@ -95,6 +100,67 @@
     }));
   }
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g,character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
+  }
+
+  function entriesFor(date) {
+    return Array.isArray(foodLog[date]) ? foodLog[date] : [];
+  }
+
+  function effectiveNutritionTarget() {
+    const result=FC.nutrition.calculate(FC.state.settings.nutrition);
+    return result.complete ? result.suggestedCalorieTarget : null;
+  }
+
+  function renderFoodScreen() {
+    document.getElementById("foodDate").value=selectedFoodDate;
+    const entries=entriesFor(selectedFoodDate);
+    const totals=FC.food.totals(entries);
+    document.getElementById("foodDailyTotals").innerHTML=`<strong>${totals.calories.toLocaleString()} kcal</strong><div class="sub">Protein ${totals.proteinGrams.toLocaleString()} g · Carbohydrates ${totals.carbohydrateGrams.toLocaleString()} g · Fat ${totals.fatGrams.toLocaleString()} g · Fibre ${totals.fibreGrams.toLocaleString()} g</div>`;
+    document.getElementById("foodMealSections").innerHTML=FC.food.MEALS.map(meal=>{
+      const mealEntries=entries.filter(entry=>entry.meal===meal);
+      const total=totals.meals[meal];
+      const body=mealEntries.length ? mealEntries.map(entry=>`<div class="meal-entry"><div><strong>${escapeHtml(entry.name)}</strong><div class="sub">${entry.calories.toLocaleString()} kcal · ${entry.proteinGrams.toLocaleString()} g protein</div></div><div class="meal-entry-actions"><button class="secondary edit-food" type="button" data-id="${escapeHtml(entry.id)}">Edit</button><button class="danger delete-food" type="button" data-id="${escapeHtml(entry.id)}" aria-label="Delete ${escapeHtml(entry.name)}">Delete</button></div></div>`).join("") : `<p class="empty-food">Nothing logged for ${meal.toLowerCase()}. Add an entry when you’re ready.</p>`;
+      return `<section class="card"><div class="meal-header"><div><h2>${meal}</h2><span class="sub">${total.calories.toLocaleString()} kcal</span></div><button class="add-food" type="button" data-meal="${meal}">Add Food</button></div>${body}</section>`;
+    }).join("");
+  }
+
+  function renderTodayNutrition() {
+    const entries=entriesFor(dateKey);
+    const totals=FC.food.totals(entries);
+    const nutrition=FC.state.settings.nutrition;
+    const target=effectiveNutritionTarget();
+    const consumed=document.getElementById("todayCaloriesConsumed");
+    const targetText=document.getElementById("todayCalorieTarget");
+    const status=document.getElementById("todayCalorieStatus");
+    const progress=document.getElementById("calorieProgress");
+    const progressBox=progress.parentElement;
+    consumed.textContent=totals.calories.toLocaleString();
+    if (target===null) {
+      targetText.textContent="No calorie target yet";
+      status.textContent="Complete your nutrition profile to calculate calories remaining.";
+      progress.style.width="0%";
+      progressBox.setAttribute("aria-valuenow","0");
+      document.getElementById("completeNutritionProfile").hidden=false;
+    } else {
+      const remaining=Math.max(0,target-totals.calories);
+      const over=Math.max(0,totals.calories-target);
+      const percentage=Math.round(totals.calories/target*100);
+      targetText.textContent=`of ${target.toLocaleString()} kcal target`;
+      status.textContent=over>0 ? `${over.toLocaleString()} kcal above today’s estimate. Your overall pattern matters more than one day.` : `${remaining.toLocaleString()} kcal remaining · ${percentage}% used`;
+      status.classList.toggle("over-target",over>0);
+      progress.style.width=`${Math.min(100,percentage)}%`;
+      progressBox.setAttribute("aria-valuenow",String(Math.min(100,percentage)));
+      progressBox.setAttribute("aria-valuetext",`${percentage}% of calorie target used`);
+      document.getElementById("completeNutritionProfile").hidden=true;
+    }
+    const proteinTarget=Number(nutrition.proteinTargetGrams)>0 ? Number(nutrition.proteinTargetGrams) : null;
+    const fibreTarget=Number(nutrition.fibreTargetGrams)>0 ? Number(nutrition.fibreTargetGrams) : null;
+    document.getElementById("todayMacroTotals").innerHTML=`<div>Protein<strong>${totals.proteinGrams.toLocaleString()}${proteinTarget ? ` / ${proteinTarget.toLocaleString()}` : ""} g</strong></div><div>Carbohydrates<strong>${totals.carbohydrateGrams.toLocaleString()} g</strong></div><div>Fat<strong>${totals.fatGrams.toLocaleString()} g</strong></div><div>Fibre<strong>${totals.fibreGrams.toLocaleString()}${fibreTarget ? ` / ${fibreTarget.toLocaleString()}` : ""} g</strong></div>`;
+    document.getElementById("todayMealTotals").innerHTML=FC.food.MEALS.map(meal=>`<div>${meal}<strong>${totals.meals[meal].calories.toLocaleString()} kcal</strong></div>`).join("");
+  }
+
   function renderWorkout() {
     const title = document.getElementById("workoutTitle");
     const body = document.getElementById("workoutBody");
@@ -120,18 +186,7 @@
 
   function renderNutritionSummary() {
     const result = FC.nutrition.calculate(FC.state.settings.nutrition);
-    const target = document.getElementById("todayCalorieTarget");
-    const mealSummary = document.getElementById("todayMealSummary");
-    const action = document.getElementById("completeNutritionProfile");
-    if (result.complete) {
-      target.textContent = `${result.suggestedCalorieTarget.toLocaleString()} kcal`;
-      mealSummary.textContent = `${FC.state.settings.nutrition.mealsPerDay} meals per day · about ${result.caloriesPerMeal.toLocaleString()} kcal per meal`;
-      action.hidden = true;
-    } else {
-      target.textContent = "—";
-      mealSummary.textContent = "Complete your nutrition profile to calculate a daily target.";
-      action.hidden = false;
-    }
+    renderTodayNutrition();
     return result;
   }
 
@@ -198,6 +253,85 @@
     document.getElementById("waterCount").textContent=water;
   }
 
+  function clearFoodErrors() {
+    ["Meal","Name","Calories","Protein","Carbohydrate","Fat","Fibre"].forEach(name=>{
+      document.getElementById(`food${name}Error`).textContent="";
+      document.getElementById(`food${name}`).removeAttribute("aria-invalid");
+    });
+  }
+
+  function openFoodDialog(meal="Breakfast",entryId="",origin=null) {
+    const entry=entryId ? entriesFor(selectedFoodDate).find(item=>item.id===entryId) : null;
+    foodDialogReturnFocus=document.activeElement;
+    foodDialogReturnFocusSelector=foodDialogReturnFocus.id ? `#${foodDialogReturnFocus.id}`
+      : foodDialogReturnFocus.classList.contains("add-food") ? `.add-food[data-meal="${foodDialogReturnFocus.dataset.meal}"]`
+      : foodDialogReturnFocus.classList.contains("edit-food") ? `.edit-food[data-id="${foodDialogReturnFocus.dataset.id}"]`
+      : "";
+    foodDialogOrigin=origin || (document.querySelector(".view.active")?.id==="today" ? "today" : "meals");
+    clearFoodErrors();
+    document.getElementById("foodDialogTitle").textContent=entry ? "Edit Food" : "Add Food";
+    document.getElementById("foodEntryId").value=entry ? entry.id : "";
+    document.getElementById("foodMeal").value=entry ? entry.meal : meal;
+    document.getElementById("foodName").value=entry ? entry.name : "";
+    document.getElementById("foodCalories").value=entry ? entry.calories : "";
+    document.getElementById("foodProtein").value=entry && entry.proteinGrams ? entry.proteinGrams : "";
+    document.getElementById("foodCarbohydrate").value=entry && entry.carbohydrateGrams ? entry.carbohydrateGrams : "";
+    document.getElementById("foodFat").value=entry && entry.fatGrams ? entry.fatGrams : "";
+    document.getElementById("foodFibre").value=entry && entry.fibreGrams ? entry.fibreGrams : "";
+    document.getElementById("foodDialogOverlay").hidden=false;
+    document.body.classList.add("settings-open");
+    document.getElementById("foodDialog").focus();
+    setTimeout(()=>document.getElementById("foodName").focus(),0);
+  }
+
+  function closeFoodDialog() {
+    document.getElementById("foodDialogOverlay").hidden=true;
+    document.body.classList.remove("settings-open");
+    activateView(foodDialogOrigin);
+    const focusTarget=document.contains(foodDialogReturnFocus) ? foodDialogReturnFocus : document.querySelector(foodDialogReturnFocusSelector);
+    if (focusTarget) focusTarget.focus();
+  }
+
+  function activateView(viewId) {
+    document.querySelectorAll(".tab").forEach(tab=>tab.classList.toggle("active",tab.dataset.view===viewId));
+    document.querySelectorAll(".view").forEach(view=>view.classList.toggle("active",view.id===viewId));
+  }
+
+  function changeFoodDate(offset) {
+    const [year,month,date]=selectedFoodDate.split("-").map(Number);
+    const next=new Date(year,month-1,date+offset);
+    selectedFoodDate=`${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,"0")}-${String(next.getDate()).padStart(2,"0")}`;
+    renderFoodScreen();
+  }
+
+  function saveFoodEntry(event) {
+    event.preventDefault();
+    clearFoodErrors();
+    const input={meal:document.getElementById("foodMeal").value,name:document.getElementById("foodName").value,calories:document.getElementById("foodCalories").value,proteinGrams:document.getElementById("foodProtein").value,carbohydrateGrams:document.getElementById("foodCarbohydrate").value,fatGrams:document.getElementById("foodFat").value,fibreGrams:document.getElementById("foodFibre").value};
+    const result=FC.food.validate(input);
+    if (!result.valid) {
+      const fieldIds={meal:"Meal",name:"Name",calories:"Calories",proteinGrams:"Protein",carbohydrateGrams:"Carbohydrate",fatGrams:"Fat",fibreGrams:"Fibre"};
+      Object.entries(result.errors).forEach(([field,message])=>{
+        document.getElementById(`food${fieldIds[field]}Error`).textContent=message;
+        document.getElementById({meal:"foodMeal",name:"foodName",calories:"foodCalories",proteinGrams:"foodProtein",carbohydrateGrams:"foodCarbohydrate",fatGrams:"foodFat",fibreGrams:"foodFibre"}[field]).setAttribute("aria-invalid","true");
+      });
+      const first=Object.keys(result.errors)[0];
+      document.getElementById({meal:"foodMeal",name:"foodName",calories:"foodCalories",proteinGrams:"foodProtein",carbohydrateGrams:"foodCarbohydrate",fatGrams:"foodFat",fibreGrams:"foodFibre"}[first]).focus();
+      return;
+    }
+    const id=document.getElementById("foodEntryId").value;
+    const entries=entriesFor(selectedFoodDate).slice();
+    const existingIndex=entries.findIndex(item=>item.id===id);
+    const now=new Date().toISOString();
+    const entry={...result.value,id:id || FC.food.createId(),date:selectedFoodDate,createdAt:existingIndex>=0 ? entries[existingIndex].createdAt : now,updatedAt:now};
+    if (existingIndex>=0) entries[existingIndex]=entry; else entries.push(entry);
+    foodLog[selectedFoodDate]=entries;
+    FC.storage.saveFoodLog(foodLog);
+    renderFoodScreen();
+    renderTodayNutrition();
+    closeFoodDialog();
+  }
+
   function renderSettingsSummary() {
     const settings = FC.state.settings;
     const protocol = settings.fasting.protocol==="Custom" ? `${settings.fasting.customHours}h fast` : settings.fasting.protocol;
@@ -219,8 +353,10 @@
 
   function reloadStoredState() {
     FC.state.settings = FC.storage.loadSettings();
+    foodLog = FC.storage.getFoodLog();
     water = FC.storage.getWater(dateKey);
     renderWater();
+    renderFoodScreen();
     refreshForSettings();
   }
 
@@ -235,6 +371,34 @@
     renderWater();
   });
   document.getElementById("completeNutritionProfile").addEventListener("click",()=>FC.settings.openNutrition());
+  document.getElementById("todayAddMeal").addEventListener("click",()=>{ selectedFoodDate=dateKey; openFoodDialog("Breakfast","","today"); });
+  document.getElementById("previousFoodDay").addEventListener("click",()=>changeFoodDate(-1));
+  document.getElementById("nextFoodDay").addEventListener("click",()=>changeFoodDate(1));
+  document.getElementById("foodDate").addEventListener("change",event=>{ if (event.target.value) { selectedFoodDate=event.target.value; renderFoodScreen(); } });
+  document.getElementById("foodMealSections").addEventListener("click",event=>{
+    const add=event.target.closest(".add-food");
+    const edit=event.target.closest(".edit-food");
+    const remove=event.target.closest(".delete-food");
+    if (add) openFoodDialog(add.dataset.meal);
+    if (edit) openFoodDialog("Breakfast",edit.dataset.id);
+    if (remove && confirm("Delete this food entry?")) {
+      foodLog[selectedFoodDate]=entriesFor(selectedFoodDate).filter(item=>item.id!==remove.dataset.id);
+      if (!foodLog[selectedFoodDate].length) delete foodLog[selectedFoodDate];
+      FC.storage.saveFoodLog(foodLog); renderFoodScreen(); renderTodayNutrition();
+    }
+  });
+  document.getElementById("foodForm").addEventListener("submit",saveFoodEntry);
+  document.getElementById("cancelFoodEntry").addEventListener("click",closeFoodDialog);
+  document.getElementById("closeFoodDialog").addEventListener("click",closeFoodDialog);
+  document.getElementById("foodDialogOverlay").addEventListener("click",event=>{ if(event.target.id==="foodDialogOverlay") closeFoodDialog(); });
+  document.getElementById("foodDialog").addEventListener("keydown",event=>{
+    if(event.key==="Escape"){event.preventDefault();closeFoodDialog();return;}
+    if(event.key!=="Tab") return;
+    const focusable=[...document.getElementById("foodDialog").querySelectorAll('button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled])')];
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
+  });
   document.getElementById("saveWeight").addEventListener("click",()=>{
     const entered = Number(document.getElementById("weightInput").value);
     const weightKg = toKilograms(entered);
@@ -248,12 +412,7 @@
     document.getElementById("weightInput").value="";
     renderProgress();
   });
-  document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>{
-    document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
-    document.querySelectorAll(".view").forEach(view=>view.classList.remove("active"));
-    button.classList.add("active");
-    document.getElementById(button.dataset.view).classList.add("active");
-  }));
+  document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>activateView(button.dataset.view)));
 
   FC.app = {
     dateKey,
@@ -266,6 +425,8 @@
     renderProgress,
     renderChecklist,
     renderWater,
+    renderFoodScreen,
+    renderTodayNutrition,
     refreshForSettings,
     reloadStoredState
   };
@@ -275,5 +436,6 @@
   renderWeek();
   renderWorkout();
   renderWater();
+  renderFoodScreen();
   refreshForSettings();
 })(window.FastingCoach = window.FastingCoach || {});
