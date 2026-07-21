@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fasting Coach" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Fasting Coach</title>
+  <style>
+    :root {
+      --bg:#f3f4f6; --card:#ffffff; --ink:#111827; --muted:#6b7280;
+      --line:#e5e7eb; --accent:#111827; --good:#166534; --warn:#92400e;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg); color:var(--ink); padding-bottom:96px;
+    }
+    header {
+      padding:calc(18px + env(safe-area-inset-top)) 18px 18px;
+      background:var(--accent); color:white;
+    }
+    header h1 { margin:0; font-size:26px; }
+    header p { margin:6px 0 0; opacity:.75; font-size:14px; }
+    main { max-width:760px; margin:auto; padding:14px; }
+    .grid { display:grid; gap:12px; }
+    .grid.two { grid-template-columns:1fr 1fr; }
+    .card {
+      background:var(--card); border-radius:18px; padding:16px;
+      box-shadow:0 2px 10px rgba(0,0,0,.05);
+    }
+    h2 { font-size:19px; margin:0 0 12px; }
+    h3 { font-size:16px; margin:16px 0 8px; }
+    .metric { font-size:28px; font-weight:700; }
+    .sub { color:var(--muted); font-size:13px; }
+    .row { display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    input, button, select {
+      font:inherit; border-radius:12px; border:1px solid var(--line); padding:11px 12px;
+    }
+    input { width:100%; background:white; }
+    button {
+      background:var(--accent); color:white; border:none; font-weight:600;
+    }
+    button.secondary { background:#e5e7eb; color:var(--ink); }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#eef2ff; font-size:12px; }
+    .progress { background:#e5e7eb; height:10px; border-radius:999px; overflow:hidden; }
+    .progress > div { height:100%; background:var(--accent); width:0%; }
+    .check {
+      display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);
+    }
+    .check:last-child { border-bottom:none; }
+    .check input { width:20px; height:20px; }
+    .timeline { display:grid; gap:10px; }
+    .event { display:grid; grid-template-columns:76px 1fr; gap:10px; }
+    .event time { color:var(--muted); font-size:13px; }
+    .tabs {
+      position:fixed; bottom:0; left:0; right:0; display:grid; grid-template-columns:repeat(5,1fr);
+      background:white; border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom); z-index:5;
+    }
+    .tab {
+      border:none; border-radius:0; background:white; color:var(--muted); padding:12px 4px;
+      font-size:11px; font-weight:600;
+    }
+    .tab.active { color:var(--ink); }
+    section.view { display:none; }
+    section.view.active { display:block; }
+    .recipe details { border-top:1px solid var(--line); padding:12px 0; }
+    .recipe details:first-of-type { border-top:none; }
+    summary { font-weight:700; cursor:pointer; }
+    ul, ol { padding-left:20px; }
+    .workout li { margin:7px 0; }
+    canvas { width:100%; height:220px; }
+    .notice { background:#fffbeb; color:var(--warn); padding:12px; border-radius:12px; font-size:13px; }
+    @media (max-width:520px) { .grid.two { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Fasting Coach</h1>
+  <p>115 kg → 80 kg · 1,800 kcal · 16:8 schedule</p>
+</header>
+
+<main>
+  <section id="today" class="view active">
+    <div class="grid two">
+      <div class="card">
+        <div class="sub">Current weight</div>
+        <div class="metric"><span id="currentWeight">115.0</span> kg</div>
+        <div class="progress"><div id="weightProgress"></div></div>
+        <div class="sub" id="weightMessage" style="margin-top:8px;"></div>
+      </div>
+      <div class="card">
+        <div class="sub">Daily target</div>
+        <div class="metric">1,800 kcal</div>
+        <div class="sub">Protein target: 180 g</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Today’s schedule</h2>
+      <div id="todaySchedule" class="timeline"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Daily checklist</h2>
+      <div id="dailyChecklist"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Water</h2>
+      <div class="row">
+        <div><span class="metric" id="waterCount">0</span><span class="sub"> / 8 glasses</span></div>
+        <button id="addWater">+ Glass</button>
+      </div>
+      <button class="secondary" id="resetWater" style="margin-top:10px;width:100%;">Reset</button>
+    </div>
+  </section>
+
+  <section id="calendar" class="view">
+    <div class="card">
+      <h2>Weekly calendar</h2>
+      <div id="weekCalendar"></div>
+    </div>
+  </section>
+
+  <section id="meals" class="view">
+    <div class="card recipe">
+      <h2>Meals & recipes</h2>
+
+      <details open>
+        <summary>Chicken Power Bowl · ~700 kcal</summary>
+        <h3>Ingredients</h3>
+        <ul>
+          <li>250 g chicken breast</li><li>150 g cooked basmati rice</li>
+          <li>200 g broccoli</li><li>1 tbsp olive oil</li>
+          <li>Salt, pepper, garlic powder, paprika</li>
+        </ul>
+        <h3>Method</h3>
+        <ol>
+          <li>Season the chicken.</li><li>Air-fry or bake at 200°C for 18–20 minutes.</li>
+          <li>Cook rice and steam broccoli.</li><li>Serve with olive oil over the vegetables.</li>
+        </ol>
+      </details>
+
+      <details>
+        <summary>Greek Yogurt Protein Bowl · ~300 kcal</summary>
+        <ul><li>300 g 0% Greek yogurt</li><li>30 g whey protein</li><li>100 g berries</li></ul>
+        <ol><li>Mix whey into yogurt.</li><li>Top with berries and chill.</li></ol>
+      </details>
+
+      <details>
+        <summary>Lean Beef & Potatoes · ~800 kcal</summary>
+        <ul>
+          <li>200 g 5% lean beef mince</li><li>250 g potatoes</li>
+          <li>200 g green beans</li><li>1 tbsp olive oil</li>
+          <li>Onion, garlic, paprika, mixed herbs</li>
+        </ul>
+        <ol>
+          <li>Roast diced potatoes at 200°C for 35–40 minutes.</li>
+          <li>Brown beef with onion, garlic, and spices.</li>
+          <li>Steam green beans and add olive oil before serving.</li>
+        </ol>
+      </details>
+
+      <details>
+        <summary>Salmon & Potatoes · ~750 kcal</summary>
+        <ul><li>180–200 g salmon</li><li>250 g baby potatoes</li><li>Broccoli</li><li>Lemon</li><li>Olive oil</li></ul>
+        <ol><li>Bake salmon at 200°C for 15–18 minutes.</li><li>Roast potatoes and steam broccoli.</li><li>Finish with lemon.</li></ol>
+      </details>
+
+      <details>
+        <summary>Chicken Wrap · ~700 kcal</summary>
+        <ul><li>250 g chicken</li><li>2 wholemeal wraps</li><li>Lettuce, tomato, cucumber</li><li>30 g light mayonnaise</li></ul>
+        <ol><li>Cook and slice chicken.</li><li>Warm wraps, add salad and chicken, then roll.</li></ol>
+      </details>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Sunday meal prep</h2>
+      <ul>
+        <li>Cook chicken, rice, potatoes, beef, and vegetables in batches.</li>
+        <li>Portion lunches and dinners for Monday–Friday.</li>
+        <li>Keep yogurt, whey, and berries separate.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="gym" class="view">
+    <div class="card workout">
+      <h2 id="workoutTitle">Today’s workout</h2>
+      <div id="workoutBody"></div>
+    </div>
+  </section>
+
+  <section id="progress" class="view">
+    <div class="card">
+      <h2>Log your weight</h2>
+      <div class="row">
+        <input id="weightInput" type="number" min="40" max="250" step="0.1" placeholder="e.g. 112.4" />
+        <button id="saveWeight">Save</button>
+      </div>
+      <div class="notice" style="margin-top:12px;">
+        Track under similar conditions, ideally in the morning after using the bathroom. Focus on weekly trends.
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Weight history</h2>
+      <canvas id="weightChart" width="700" height="260"></canvas>
+      <div id="weightHistory"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button class="tab active" data-view="today">Today</button>
+  <button class="tab" data-view="calendar">Calendar</button>
+  <button class="tab" data-view="meals">Meals</button>
+  <button class="tab" data-view="gym">Gym</button>
+  <button class="tab" data-view="progress">Progress</button>
+</nav>
+
+<script>
+const START_WEIGHT = 115;
+const GOAL_WEIGHT = 80;
+const schedule = {
+  0: [["8:00","Wake, hydrate"],["10:00","Grocery shopping"],["12:00","Lunch"],["14:00","Meal prep"],["15:30","Protein snack"],["19:00","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
+  1: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Push workout"],["19:45","Lean Beef & Potatoes"],["20:00","Begin fast"],["22:30","Sleep"]],
+  2: [["7:00","Wake and hydrate"],["9:00","Work"],["12:00","Lunch"],["15:30","Protein snack"],["18:30","45-minute brisk walk"],["19:30","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
+  3: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Pull workout"],["19:45","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
+  4: [["7:00","Wake and hydrate"],["9:00","Work"],["12:00","Lunch"],["15:30","Protein snack"],["18:30","45-minute brisk walk"],["19:30","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
+  5: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Leg workout"],["19:45","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
+  6: [["8:00","Wake and hydrate"],["12:00","Lunch"],["14:00","60-minute walk, swim, or cycle"],["15:30","Protein snack"],["19:00","Dinner"],["20:00","Begin fast"]]
+};
+
+const workouts = {
+  1: ["Bench Press — 3 × 8–10","Incline Dumbbell Press — 3 × 10","Shoulder Press — 3 × 10","Lateral Raises — 3 × 15","Triceps Pushdowns — 3 × 12","Incline Walk — 10 minutes"],
+  3: ["Lat Pulldown — 3 × 10","Seated Cable Row — 3 × 10","Face Pull — 3 × 15","Dumbbell Curl — 3 × 12","Hammer Curl — 3 × 12","Incline Walk — 10 minutes"],
+  5: ["Leg Press — 3 × 10","Romanian Deadlift — 3 × 10","Leg Curl — 3 × 12","Leg Extension — 3 × 12","Standing Calf Raises — 3 × 15","Plank — 3 sets"]
+};
+
+const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const today = new Date();
+const day = today.getDay();
+const dateKey = today.toISOString().slice(0,10);
+
+function renderSchedule() {
+  const el = document.getElementById("todaySchedule");
+  el.innerHTML = schedule[day].map(([t,a]) => `<div class="event"><time>${t}</time><div>${a}</div></div>`).join("");
+}
+
+function renderWeek() {
+  const el = document.getElementById("weekCalendar");
+  el.innerHTML = days.map((name,i) => `
+    <details ${i===day ? "open" : ""}>
+      <summary>${name}</summary>
+      <div class="timeline" style="margin:10px 0 16px;">
+        ${schedule[i].map(([t,a]) => `<div class="event"><time>${t}</time><div>${a}</div></div>`).join("")}
+      </div>
+    </details>`).join("");
+}
+
+const checklistItems = [
+  "Stay near 1,800 kcal",
+  "Reach 180 g protein",
+  "Drink 2.5–3.5 L water",
+  "Complete workout or walk",
+  "Reach your step goal",
+  "Stop eating by 8:00 PM",
+  "Aim for 7–8 hours of sleep"
+];
+
+function renderChecklist() {
+  const saved = JSON.parse(localStorage.getItem("checklist-"+dateKey) || "{}");
+  const el = document.getElementById("dailyChecklist");
+  el.innerHTML = checklistItems.map((item,i)=>`
+    <label class="check"><input type="checkbox" data-i="${i}" ${saved[i] ? "checked" : ""}><span>${item}</span></label>
+  `).join("");
+  el.querySelectorAll("input").forEach(box => box.addEventListener("change", e => {
+    saved[e.target.dataset.i] = e.target.checked;
+    localStorage.setItem("checklist-"+dateKey, JSON.stringify(saved));
+  }));
+}
+
+function renderWorkout() {
+  const title = document.getElementById("workoutTitle");
+  const body = document.getElementById("workoutBody");
+  if (workouts[day]) {
+    title.textContent = days[day] + " workout";
+    body.innerHTML = `<ol>${workouts[day].map(x=>`<li>${x}</li>`).join("")}</ol>`;
+  } else {
+    title.textContent = days[day] + " activity";
+    body.innerHTML = day===0 ? "<p>Rest, grocery shopping, and meal prep.</p>" :
+      day===6 ? "<p>Complete 60 minutes of walking, swimming, or cycling.</p>" :
+      "<p>Complete a 30–45 minute brisk walk and light stretching.</p>";
+  }
+}
+
+function getWeights() {
+  return JSON.parse(localStorage.getItem("weights") || `[{"date":"${dateKey}","weight":115}]`);
+}
+function saveWeights(v) { localStorage.setItem("weights", JSON.stringify(v)); }
+
+function renderProgress() {
+  const weights = getWeights();
+  const latest = weights[weights.length-1].weight;
+  document.getElementById("currentWeight").textContent = latest.toFixed(1);
+  const percent = Math.max(0, Math.min(100, ((START_WEIGHT-latest)/(START_WEIGHT-GOAL_WEIGHT))*100));
+  document.getElementById("weightProgress").style.width = percent+"%";
+  document.getElementById("weightMessage").textContent = `${Math.max(0, latest-GOAL_WEIGHT).toFixed(1)} kg remaining`;
+  document.getElementById("weightHistory").innerHTML = weights.slice().reverse().map(x =>
+    `<div class="row" style="padding:8px 0;border-top:1px solid var(--line)"><span>${x.date}</span><strong>${x.weight.toFixed(1)} kg</strong></div>`
+  ).join("");
+  drawChart(weights);
+}
+
+function drawChart(weights) {
+  const c = document.getElementById("weightChart"), ctx = c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  const pad=34, w=c.width-pad*2, h=c.height-pad*2;
+  ctx.strokeStyle="#d1d5db"; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad,pad); ctx.lineTo(pad,pad+h); ctx.lineTo(pad+w,pad+h); ctx.stroke();
+  if (!weights.length) return;
+  const vals = weights.map(x=>x.weight);
+  const min = Math.min(GOAL_WEIGHT, ...vals)-2, max = Math.max(START_WEIGHT, ...vals)+2;
+  const points = weights.map((x,i)=>{
+    const px = pad + (weights.length===1 ? .5 : i/(weights.length-1))*w;
+    const py = pad + (max-x.weight)/(max-min)*h;
+    return {px,py};
+  });
+  if (points.length > 1) {
+    ctx.strokeStyle="#111827"; ctx.lineWidth=3; ctx.beginPath();
+    points.forEach(({px,py},i)=> i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py));
+    ctx.stroke();
+  }
+  ctx.fillStyle="#111827";
+  points.forEach(({px,py})=>{
+    ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle="#6b7280"; ctx.font="12px -apple-system";
+  ctx.fillText(max.toFixed(0)+" kg",2,pad+4);
+  ctx.fillText(min.toFixed(0)+" kg",2,pad+h);
+}
+
+let water = Number(localStorage.getItem("water-"+dateKey) || 0);
+function renderWater(){ document.getElementById("waterCount").textContent=water; }
+document.getElementById("addWater").onclick=()=>{ water=Math.min(20,water+1); localStorage.setItem("water-"+dateKey,water); renderWater(); };
+document.getElementById("resetWater").onclick=()=>{ water=0; localStorage.setItem("water-"+dateKey,water); renderWater(); };
+
+document.getElementById("saveWeight").onclick=()=>{
+  const n = Number(document.getElementById("weightInput").value);
+  if (!n || n<40 || n>250) return alert("Enter a valid weight.");
+  const weights = getWeights();
+  const existing = weights.find(x=>x.date===dateKey);
+  if (existing) existing.weight=n; else weights.push({date:dateKey,weight:n});
+  weights.sort((a,b)=>a.date.localeCompare(b.date));
+  saveWeights(weights);
+  document.getElementById("weightInput").value="";
+  renderProgress();
+};
+
+document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById(btn.dataset.view).classList.add("active");
+}));
+
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+
+renderSchedule(); renderWeek(); renderChecklist(); renderWorkout(); renderWater(); renderProgress();
+</script>
+</body>
+</html>
