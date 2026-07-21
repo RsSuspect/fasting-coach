@@ -1,5 +1,13 @@
-const CACHE="fasting-coach-v3";
-const FILES=["./index.html","./manifest.json"];
+const CACHE="fasting-coach-v4";
+const FILES=[
+  "./index.html",
+  "./styles.css",
+  "./storage.js",
+  "./theme.js",
+  "./app.js",
+  "./settings.js",
+  "./manifest.json"
+];
 
 function isCacheable(response) {
   return response.status===200 && !response.redirected;
