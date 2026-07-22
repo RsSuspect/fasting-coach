@@ -173,6 +173,28 @@ body.settings-open { overflow:hidden; }
 .split-fields,.macro-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
 .split-fields label { display:grid; gap:6px; font-size:13px; }
 .two-choice { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.schedule-editor-list,.fasting-schedule-editor { display:grid; gap:8px; margin-bottom:10px; }
+.schedule-editor-item,.fasting-day { min-width:0; padding:12px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); }
+.schedule-editor-item { display:grid; gap:10px; }
+.schedule-editor-item > div:first-child,.schedule-editor-item .setting-help { display:block; min-width:0; overflow-wrap:anywhere; }
+.schedule-item-actions,.settings-inline-actions { display:flex; flex-wrap:wrap; gap:7px; }
+.schedule-item-actions button { min-width:44px; padding-inline:9px; }
+.fasting-day summary { display:flex; justify-content:space-between; gap:12px; min-height:44px; align-items:center; cursor:pointer; }
+.fasting-day summary span { color:var(--muted); font-size:13px; }
+.fasting-day-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding-top:10px; }
+.fasting-day-fields label { display:grid; gap:6px; font-weight:680; }
+.fasting-day-fields .toggle-row { grid-column:1/-1; display:grid; }
+.copy-fasting-day { grid-column:1/-1; }
+.dialog-card { width:min(calc(100% - 24px),520px); max-height:calc(100% - 24px); overflow:auto; margin:auto; padding:20px; border:1px solid var(--line); border-radius:var(--radius-xl); background:var(--bg); box-shadow:var(--shadow-md); }
+#scheduleEventForm { display:grid; gap:12px; }
+#scheduleEventForm .settings-header { position:static; margin:0; }
+.form-field { display:grid; gap:5px; }
+.form-field label,.day-picker legend { font-weight:680; }
+textarea { width:100%; max-width:100%; resize:vertical; }
+.day-picker { min-width:0; margin:0; padding:0; border:0; }
+.day-choice-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:8px; }
+.timeline-event-description { display:block; margin-top:2px; color:var(--muted); font-size:12px; font-weight:500; }
+.timeline-event--fast-start::before,.timeline-event--fast-end::before { background:var(--warn); }
 .food-dialog { width:min(calc(100% - 24px),540px); max-height:calc(100% - 24px); overflow:auto; margin:auto; padding:20px; border:1px solid var(--line); border-radius:var(--radius-xl); background:var(--bg); box-shadow:var(--shadow-md); }
 .food-form-grid { display:grid; gap:12px; }
 .food-form-grid label { display:block; margin-bottom:6px; font-weight:680; }
@@ -196,6 +218,8 @@ body.settings-open { overflow:hidden; }
   .summary-grid { grid-template-columns:1fr; }
   .choice-grid { grid-template-columns:1fr; }
   .choice-grid.two-choice { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .day-choice-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .fasting-day-fields { grid-template-columns:1fr; }
 }
 @media (max-width:360px) {
   .macro-inputs,.split-fields { grid-template-columns:1fr; }

@@ -46,6 +46,36 @@ Example:
 
 The nutrition object will grow over time without breaking older backups.
 
+Current settings use schema version 3. They retain `profile`, `fasting`, `appearance`, and `nutrition`, and add the following objects without introducing new localStorage keys:
+
+```json
+{
+  "schedule": {
+    "version": 1,
+    "events": [{
+      "id": "stable-id",
+      "name": "Walk",
+      "time": "18:30",
+      "description": "Optional note",
+      "enabled": true,
+      "days": [1, 3, 5],
+      "createdAt": "2026-07-22T10:00:00.000Z",
+      "updatedAt": "2026-07-22T10:00:00.000Z"
+    }]
+  },
+  "fastingSchedule": {
+    "version": 1,
+    "days": {
+      "0": { "enabled": true, "startTime": "20:00", "endTime": "12:00" }
+    }
+  }
+}
+```
+
+Weekday keys use JavaScript weekday numbers (`0` Sunday through `6` Saturday). An end time at or before its start time is an overnight window ending the next day. Older settings and backups without these objects are migrated to the legacy daily schedule and default fasting window during loading or import.
+
+`profile.goalWeightKg` is the authoritative goal weight. Current weight is the latest entry in `weights`; the legacy nutrition weight properties remain readable and are synchronised when settings or a weigh-in are saved for backward compatibility.
+
 ---
 
 ## Weight History

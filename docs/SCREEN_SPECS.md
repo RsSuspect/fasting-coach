@@ -887,6 +887,14 @@ Fields may include:
 
 Changes should not reset an active fast unless explicitly required and confirmed.
 
+## 11.1 Daily and Fasting Schedule Editors
+
+Settings provides a Daily schedule editor for adding, editing, deleting, enabling, and ordering events. Each event has a time, name, optional description, and one or more weekdays. Changes remain in draft state until Save settings is used.
+
+The Fasting schedule editor provides an enabled state and start/end time for every weekday, plus copy/apply shortcuts. Today and Weekly calendar combine enabled user events with generated fasting start/end markers. Overnight fasting starts on the configured day and ends on the following day. Generated markers are omitted when an equivalent user event already exists.
+
+Today shows a planned fasting status only; it must not imply that a fast was actually started or completed. Empty schedules include an Edit schedule action.
+
 ---
 
 # 12. Appearance Section

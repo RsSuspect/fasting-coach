@@ -11,6 +11,9 @@
   const clearConfirmation = document.getElementById("clearConfirmation");
   let settingsReturnFocus = null;
   let formWeightUnit = FC.state.settings.profile.weightUnit;
+  let draftSchedule=FC.schedule.normaliseSchedule(FC.state.settings.schedule);
+  let draftFastingSchedule=FC.schedule.normaliseFastingSchedule(FC.state.settings.fastingSchedule,FC.state.settings.fasting);
+  let scheduleDialogReturnFocus=null;
 
   const nutritionFields = {
     age: document.getElementById("nutritionAge"),
@@ -18,8 +21,6 @@
     heightCm: document.getElementById("nutritionHeightCm"),
     heightFeet: document.getElementById("nutritionHeightFeet"),
     heightInches: document.getElementById("nutritionHeightInches"),
-    currentWeight: document.getElementById("nutritionCurrentWeight"),
-    goalWeight: document.getElementById("nutritionGoalWeight"),
     activityLevel: document.getElementById("nutritionActivity"),
     targetDate: document.getElementById("nutritionTargetDate"),
     manualCalorieTarget: document.getElementById("manualCalorieTarget"),
@@ -70,12 +71,13 @@
   }
 
   function nutritionFromForm() {
+    const goalWeight=Number(document.getElementById("goalWeightSetting").value);
     return {
       age: optionalNumber(nutritionFields.age),
       sex: nutritionFields.sex.value,
       heightCm: heightFromForm(),
-      currentWeightKg: FC.app.toKilograms(optionalNumber(nutritionFields.currentWeight),formWeightUnit),
-      goalWeightKg: FC.app.toKilograms(optionalNumber(nutritionFields.goalWeight),formWeightUnit),
+      currentWeightKg: FC.app.latestWeightKg(),
+      goalWeightKg: FC.app.toKilograms(goalWeight,formWeightUnit),
       activityLevel: nutritionFields.activityLevel.value,
       targetDate: nutritionFields.targetDate.value,
       calorieMode: selectedCalorieMode(),
@@ -116,6 +118,51 @@
     return result;
   }
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g,character=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[character]);
+  }
+
+  function renderScheduleEditor() {
+    const list=document.getElementById("scheduleEditorList");
+    const events=draftSchedule.events;
+    list.innerHTML=events.length ? events.map(event=>`<article class="schedule-editor-item" data-event-id="${escapeHtml(event.id)}"><div><strong>${escapeHtml(event.time)} · ${escapeHtml(event.name)}</strong><span class="setting-help">${event.enabled ? "Enabled" : "Disabled"} · ${event.days.map(day=>FC.schedule.WEEKDAYS[day].slice(0,3)).join(", ")}${event.description ? ` · ${escapeHtml(event.description)}` : ""}</span></div><div class="schedule-item-actions"><button class="secondary" data-schedule-action="up" type="button" aria-label="Move ${escapeHtml(event.name)} up">↑</button><button class="secondary" data-schedule-action="down" type="button" aria-label="Move ${escapeHtml(event.name)} down">↓</button><button class="secondary" data-schedule-action="edit" type="button">Edit</button><button class="danger" data-schedule-action="delete" type="button">Delete</button></div></article>`).join("") : '<p class="empty-state">No schedule events yet.</p>';
+  }
+
+  function renderFastingScheduleEditor() {
+    document.getElementById("fastingScheduleEditor").innerHTML=FC.schedule.WEEKDAYS.map((name,index)=>{
+      const item=draftFastingSchedule.days[String(index)];
+      const minutes=FC.schedule.fastingDuration(item);
+      const summary=item.enabled ? `${Math.floor(minutes/60)}h ${minutes%60 ? `${minutes%60}m` : ""}${FC.schedule.isOvernight(item) ? " · overnight" : ""}` : "Disabled";
+      return `<details class="fasting-day" ${index===1 ? "open" : ""}><summary><strong>${name}</strong><span>${summary}</span></summary><div class="fasting-day-fields"><label class="toggle-row"><span>Enabled</span><input class="toggle" data-fasting-field="enabled" data-day="${index}" type="checkbox" ${item.enabled ? "checked" : ""}></label><label>Starts<input data-fasting-field="startTime" data-day="${index}" type="time" value="${item.startTime}"></label><label>Ends<input data-fasting-field="endTime" data-day="${index}" type="time" value="${item.endTime}"></label>${index ? `<button class="secondary copy-fasting-day" data-day="${index}" type="button">Copy previous day</button>` : ""}</div></details>`;
+    }).join("");
+  }
+
+  function showScheduleErrors(errors={}) {
+    ["name","time","description","days"].forEach(key=>document.getElementById(`scheduleEvent${key[0].toUpperCase()+key.slice(1)}Error`).textContent=errors[key]||"");
+  }
+
+  function openScheduleEvent(eventId="",trigger=document.activeElement) {
+    scheduleDialogReturnFocus=trigger;
+    const existing=draftSchedule.events.find(event=>event.id===eventId);
+    document.getElementById("scheduleEventTitle").textContent=existing ? "Edit schedule event" : "Add schedule event";
+    document.getElementById("scheduleEventId").value=existing?.id||"";
+    document.getElementById("scheduleEventName").value=existing?.name||"";
+    document.getElementById("scheduleEventTime").value=existing?.time||"08:00";
+    document.getElementById("scheduleEventDescription").value=existing?.description||"";
+    document.getElementById("scheduleEventEnabled").checked=existing?.enabled!==false;
+    document.getElementById("scheduleEventDays").innerHTML=FC.schedule.WEEKDAYS.map((name,index)=>`<label class="choice"><input type="checkbox" value="${index}" ${(existing?.days||[new Date().getDay()]).includes(index) ? "checked" : ""}><span>${name.slice(0,3)}</span></label>`).join("");
+    showScheduleErrors();
+    document.getElementById("scheduleEventOverlay").hidden=false;
+    settingsPanel.setAttribute("inert","");
+    document.getElementById("scheduleEventDialog").focus();
+  }
+
+  function closeScheduleEvent() {
+    document.getElementById("scheduleEventOverlay").hidden=true;
+    settingsPanel.removeAttribute("inert");
+    scheduleDialogReturnFocus?.focus();
+  }
+
   function fillForm() {
     const settings = FC.state.settings;
     formWeightUnit = settings.profile.weightUnit;
@@ -139,10 +186,6 @@
       nutritionFields.heightFeet.value = "";
       nutritionFields.heightInches.value = "";
     }
-    const currentWeightKg = nutrition.currentWeightKg ?? FC.app.latestWeightKg();
-    const nutritionGoalKg = nutrition.goalWeightKg ?? settings.profile.goalWeightKg;
-    nutritionFields.currentWeight.value = FC.app.toDisplayWeight(currentWeightKg,formWeightUnit).toFixed(1);
-    nutritionFields.goalWeight.value = FC.app.toDisplayWeight(nutritionGoalKg,formWeightUnit).toFixed(1);
     nutritionFields.activityLevel.value = nutrition.activityLevel;
     nutritionFields.targetDate.value = nutrition.targetDate;
     const tomorrow = new Date();
@@ -157,6 +200,10 @@
     settingsStatus.textContent = "";
     dataStatus.textContent = "";
     clearConfirmation.hidden = true;
+    draftSchedule=FC.schedule.normaliseSchedule(settings.schedule);
+    draftFastingSchedule=FC.schedule.normaliseFastingSchedule(settings.fastingSchedule,settings.fasting);
+    renderScheduleEditor();
+    renderFastingScheduleEditor();
     toggleCustomHours();
     renderLiveNutritionSummary();
   }
@@ -193,6 +240,13 @@
     setTimeout(()=>nutritionFields.age.focus(),0);
   }
 
+  function openSchedule() {
+    open();
+    const section=document.getElementById("scheduleSettingsSection");
+    section.scrollIntoView({block:"start"});
+    setTimeout(()=>document.getElementById("addScheduleEvent").focus(),0);
+  }
+
   function handleKeys(event) {
     if (event.key==="Escape") {
       event.preventDefault();
@@ -200,7 +254,7 @@
       return;
     }
     if (event.key!=="Tab") return;
-    const focusable = [...settingsPanel.querySelectorAll('button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(element=>!element.closest("[hidden]"));
+    const focusable = [...settingsPanel.querySelectorAll('button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(element=>!element.closest("[hidden]"));
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length-1];
@@ -222,6 +276,77 @@
   document.getElementById("fastingProtocol").addEventListener("change",toggleCustomHours);
   document.getElementById("nutritionProfileSection").addEventListener("input",renderLiveNutritionSummary);
   document.getElementById("nutritionProfileSection").addEventListener("change",renderLiveNutritionSummary);
+  document.getElementById("goalWeightSetting").addEventListener("input",renderLiveNutritionSummary);
+  document.getElementById("addScheduleEvent").addEventListener("click",event=>openScheduleEvent("",event.currentTarget));
+  document.getElementById("scheduleEditorList").addEventListener("click",event=>{
+    const button=event.target.closest("[data-schedule-action]");
+    const item=event.target.closest("[data-event-id]");
+    if (!button || !item) return;
+    const index=draftSchedule.events.findIndex(entry=>entry.id===item.dataset.eventId);
+    if (index<0) return;
+    const action=button.dataset.scheduleAction;
+    if (action==="edit") return openScheduleEvent(item.dataset.eventId,button);
+    if (action==="delete") {
+      if (!confirm(`Delete “${draftSchedule.events[index].name}”?`)) return;
+      draftSchedule.events.splice(index,1);
+    } else {
+      const next=action==="up" ? index-1 : index+1;
+      if (next<0 || next>=draftSchedule.events.length) return;
+      [draftSchedule.events[index],draftSchedule.events[next]]=[draftSchedule.events[next],draftSchedule.events[index]];
+    }
+    renderScheduleEditor();
+  });
+  document.querySelectorAll(".day-shortcut").forEach(button=>button.addEventListener("click",()=>{
+    const days=button.dataset.days.split(",");
+    document.querySelectorAll("#scheduleEventDays input").forEach(input=>input.checked=days.includes(input.value));
+  }));
+  ["closeScheduleEvent","cancelScheduleEvent"].forEach(id=>document.getElementById(id).addEventListener("click",closeScheduleEvent));
+  document.getElementById("scheduleEventOverlay").addEventListener("click",event=>{ if (event.target===event.currentTarget) closeScheduleEvent(); });
+  document.getElementById("scheduleEventDialog").addEventListener("keydown",event=>{
+    if (event.key==="Escape") { event.preventDefault(); closeScheduleEvent(); return; }
+    if (event.key!=="Tab") return;
+    const focusable=[...event.currentTarget.querySelectorAll('button:not([disabled]),input:not([disabled]):not([type="hidden"]),textarea:not([disabled])')];
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if (event.shiftKey&&document.activeElement===first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey&&document.activeElement===last) { event.preventDefault(); first.focus(); }
+  });
+  document.getElementById("scheduleEventForm").addEventListener("submit",event=>{
+    event.preventDefault();
+    const input={name:document.getElementById("scheduleEventName").value,time:document.getElementById("scheduleEventTime").value,description:document.getElementById("scheduleEventDescription").value,enabled:document.getElementById("scheduleEventEnabled").checked,days:[...document.querySelectorAll("#scheduleEventDays input:checked")].map(item=>Number(item.value))};
+    const result=FC.schedule.validateEvent(input);
+    showScheduleErrors(result.errors);
+    if (!result.valid) return;
+    const id=document.getElementById("scheduleEventId").value;
+    const index=draftSchedule.events.findIndex(item=>item.id===id);
+    const now=new Date().toISOString();
+    const saved={...result.value,id:id||FC.schedule.createId(),createdAt:index>=0 ? draftSchedule.events[index].createdAt : now,updatedAt:now};
+    if (index>=0) draftSchedule.events[index]=saved; else draftSchedule.events.push(saved);
+    renderScheduleEditor();
+    closeScheduleEvent();
+  });
+  document.getElementById("fastingScheduleEditor").addEventListener("change",event=>{
+    const field=event.target.dataset.fastingField,day=event.target.dataset.day;
+    if (!field || day===undefined) return;
+    draftFastingSchedule.days[day][field]=field==="enabled" ? event.target.checked : event.target.value;
+    renderFastingScheduleEditor();
+  });
+  document.getElementById("fastingScheduleEditor").addEventListener("click",event=>{
+    const button=event.target.closest(".copy-fasting-day");
+    if (!button) return;
+    const day=Number(button.dataset.day);
+    draftFastingSchedule.days[String(day)]={...draftFastingSchedule.days[String(day-1)]};
+    renderFastingScheduleEditor();
+  });
+  document.getElementById("applyMondayFasting").addEventListener("click",()=>{
+    const monday={...draftFastingSchedule.days["1"]};
+    FC.schedule.WEEKDAYS.forEach((_,day)=>draftFastingSchedule.days[String(day)]={...monday});
+    renderFastingScheduleEditor();
+  });
+  document.getElementById("resetFastingSchedule").addEventListener("click",()=>{
+    if (!confirm("Reset all fasting days to the default 20:00–12:00 window?")) return;
+    draftFastingSchedule=FC.schedule.defaultFastingSchedule();
+    renderFastingScheduleEditor();
+  });
 
   document.querySelectorAll('input[name="weightUnit"]').forEach(input=>input.addEventListener("change",event=>{
     const nextUnit = event.target.value;
@@ -236,7 +361,7 @@
       const heightCm = heightFromForm();
       nutritionFields.heightCm.value = heightCm===null ? "" : heightCm.toFixed(1);
     }
-    ["startingWeightSetting","goalWeightSetting","nutritionCurrentWeight","nutritionGoalWeight"].forEach(id=>{
+    ["startingWeightSetting","goalWeightSetting"].forEach(id=>{
       const field = document.getElementById(id);
       if (field.value.trim()==="") return;
       const kg = FC.app.toKilograms(Number(field.value),formWeightUnit);
@@ -272,6 +397,11 @@
       setStatus(settingsStatus,"Enter a custom fasting duration between 1 and 168 hours.","error");
       return;
     }
+    if (!FC.schedule.isValidSchedule(draftSchedule) || !FC.schedule.isValidFastingSchedule(draftFastingSchedule)) {
+      setStatus(settingsStatus,"Check that every schedule event has valid details and every fasting day has valid start and end times.","error");
+      document.getElementById("scheduleSettingsSection").scrollIntoView({block:"start"});
+      return;
+    }
     if (nutritionProfileStarted(nutrition) && !nutritionResult.complete) {
       setStatus(settingsStatus,nutritionResult.errors[0] || "Complete the nutrition profile before saving.","error");
       document.getElementById("nutritionProfileSection").scrollIntoView({block:"start"});
@@ -289,8 +419,9 @@
       customHours: protocol==="Custom" ? customHours : FC.state.settings.fasting.customHours,
       electrolyteReminders: document.getElementById("electrolyteReminders").checked
     };
+    FC.state.settings.schedule=FC.schedule.normaliseSchedule(draftSchedule);
+    FC.state.settings.fastingSchedule=FC.schedule.normaliseFastingSchedule(draftFastingSchedule,FC.state.settings.fasting);
     FC.state.settings.nutrition = nutrition;
-    if (nutritionResult.complete) FC.state.settings.profile.goalWeightKg = nutrition.goalWeightKg;
     FC.storage.saveSettings(FC.state.settings);
     FC.app.refreshForSettings();
     setStatus(settingsStatus,"Settings saved.");
@@ -342,5 +473,5 @@
     setStatus(dataStatus,"All locally stored app data has been cleared.");
   });
 
-  FC.settings = { open, openNutrition, close, fillForm };
+  FC.settings = { open, openNutrition, openSchedule, close, fillForm };
 })(window.FastingCoach = window.FastingCoach || {});

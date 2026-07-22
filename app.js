@@ -1,15 +1,6 @@
 (function (FC) {
   "use strict";
 
-  const schedule = {
-    0: [["8:00","Wake, hydrate"],["10:00","Grocery shopping"],["12:00","Lunch"],["14:00","Meal prep"],["15:30","Protein snack"],["19:00","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
-    1: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Push workout"],["19:45","Lean Beef & Potatoes"],["20:00","Begin fast"],["22:30","Sleep"]],
-    2: [["7:00","Wake and hydrate"],["9:00","Work"],["12:00","Lunch"],["15:30","Protein snack"],["18:30","45-minute brisk walk"],["19:30","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
-    3: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Pull workout"],["19:45","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
-    4: [["7:00","Wake and hydrate"],["9:00","Work"],["12:00","Lunch"],["15:30","Protein snack"],["18:30","45-minute brisk walk"],["19:30","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
-    5: [["7:00","Wake and drink 500 ml water"],["9:00","Work"],["12:00","Chicken Power Bowl"],["12:30","10-minute walk"],["15:30","Protein snack"],["18:30","Leg workout"],["19:45","Dinner"],["20:00","Begin fast"],["22:30","Sleep"]],
-    6: [["8:00","Wake and hydrate"],["12:00","Lunch"],["14:00","60-minute walk, swim, or cycle"],["15:30","Protein snack"],["19:00","Dinner"],["20:00","Begin fast"]]
-  };
   const workouts = {
     1: ["Bench Press — 3 × 8–10","Incline Dumbbell Press — 3 × 10","Shoulder Press — 3 × 10","Lateral Raises — 3 × 15","Triceps Pushdowns — 3 × 12","Incline Walk — 10 minutes"],
     3: ["Lat Pulldown — 3 × 10","Seated Cable Row — 3 × 10","Face Pull — 3 × 15","Dumbbell Curl — 3 × 12","Hammer Curl — 3 × 12","Incline Walk — 10 minutes"],
@@ -69,10 +60,12 @@
   }
 
   function renderTimeline(items,isToday=false) {
-    const events=items.map(([time,activity])=>{
+    if (!items.length) return '<div class="empty-state">No events planned. <button class="secondary compact-action edit-schedule-empty" type="button">Edit schedule</button></div>';
+    const events=items.map(item=>{
+      const {time,name,description,type}=item;
       const minutes=timeToMinutes(time);
       const minutesAttribute=minutes===null ? "" : ` data-time-minutes="${minutes}"`;
-      return `<div class="event timeline-event"${minutesAttribute}><time datetime="${escapeHtml(time)}">${escapeHtml(time)}</time><div><span class="timeline-event-label">${escapeHtml(activity)}</span></div></div>`;
+      return `<div class="event timeline-event timeline-event--${escapeHtml(type||"user")}"${minutesAttribute}><time datetime="${escapeHtml(time)}">${escapeHtml(time)}</time><div><span class="timeline-event-label">${escapeHtml(name)}</span>${description ? `<span class="timeline-event-description">${escapeHtml(description)}</span>` : ""}</div></div>`;
     }).join("");
     return `<div class="timeline-events">${events}</div>${isToday ? '<div class="timeline-now-marker" role="status" aria-live="off" hidden><span class="timeline-now-dot" aria-hidden="true"></span><span class="timeline-now-label"></span></div>' : ""}`;
   }
@@ -81,7 +74,9 @@
     const container=document.getElementById("todaySchedule");
     container.classList.add("timeline--has-current-time");
     container.dataset.date=localDateKey();
-    container.innerHTML=renderTimeline(schedule[day],true);
+    container.innerHTML=renderTimeline(FC.schedule.eventsForDay(FC.state.settings,new Date().getDay()),true);
+    const status=FC.schedule.fastingStatus(FC.state.settings.fastingSchedule);
+    document.getElementById("fastingPlanStatus").textContent=status.message;
   }
 
   function renderWeek() {
@@ -89,7 +84,7 @@
       <details ${index===day ? "open" : ""}>
         <summary>${name}</summary>
         <div class="timeline${index===day ? " timeline--has-current-time" : ""}" data-date="${index===day ? localDateKey() : ""}">
-          ${renderTimeline(schedule[index],index===day)}
+          ${renderTimeline(FC.schedule.eventsForDay(FC.state.settings,index),index===day)}
         </div>
       </details>`).join("");
   }
@@ -175,7 +170,7 @@
 
   function getChecklistItems() {
     const nutrition = FC.state.settings.nutrition;
-    const result = FC.nutrition.calculate(nutrition);
+    const result = FC.nutrition.calculate(effectiveNutritionProfile());
     if (!result.complete) return checklistFallbacks;
     const calorieTarget = nutrition.calorieMode==="manual"
       ? Math.round(nutrition.manualCalorieTarget)
@@ -211,7 +206,7 @@
   }
 
   function effectiveNutritionTarget() {
-    const result=FC.nutrition.calculate(FC.state.settings.nutrition);
+    const result=FC.nutrition.calculate(effectiveNutritionProfile());
     return result.complete ? result.suggestedCalorieTarget : null;
   }
 
@@ -301,8 +296,12 @@
     return weights.length ? Number(weights[weights.length-1].weight) : FC.state.settings.profile.startingWeightKg;
   }
 
+  function effectiveNutritionProfile() {
+    return {...FC.state.settings.nutrition,currentWeightKg:latestWeightKg(),goalWeightKg:FC.state.settings.profile.goalWeightKg};
+  }
+
   function renderNutritionSummary() {
-    const result = FC.nutrition.calculate(FC.state.settings.nutrition);
+    const result = FC.nutrition.calculate(effectiveNutritionProfile());
     renderTodayNutrition();
     return result;
   }
@@ -498,6 +497,8 @@
 
   function refreshForSettings() {
     FC.theme.apply();
+    renderSchedule();
+    renderWeek();
     renderSettingsSummary();
     renderProgress();
     renderChecklist();
@@ -523,6 +524,8 @@
     renderWater();
   });
   document.getElementById("completeNutritionProfile").addEventListener("click",()=>FC.settings.openNutrition());
+  document.getElementById("editScheduleFromToday").addEventListener("click",()=>FC.settings.openSchedule());
+  document.addEventListener("click",event=>{ if (event.target.closest(".edit-schedule-empty")) FC.settings.openSchedule(); });
   document.getElementById("todayAddMeal").addEventListener("click",()=>{ selectedFoodDate=dateKey; openFoodDialog("Breakfast","","today"); });
   document.getElementById("previousFoodDay").addEventListener("click",()=>changeFoodDate(-1));
   document.getElementById("nextFoodDay").addEventListener("click",()=>changeFoodDate(1));
@@ -561,8 +564,10 @@
     else weights.push({date:dateKey,weight:weightKg});
     weights.sort((a,b)=>a.date.localeCompare(b.date));
     FC.storage.saveWeights(weights);
+    FC.state.settings.nutrition.currentWeightKg=weightKg;
+    FC.storage.saveSettings(FC.state.settings);
     document.getElementById("weightInput").value="";
-    renderProgress();
+    renderProgress(); renderSettingsSummary();
   });
   document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>activateView(button.dataset.view)));
   document.querySelectorAll("#weekCalendar details").forEach(details=>details.addEventListener("toggle",()=>requestAnimationFrame(()=>refreshTimelines())));

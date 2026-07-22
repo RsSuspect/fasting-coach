@@ -55,7 +55,8 @@
     </div>
 
     <div class="card schedule-card" style="margin-top:12px;">
-      <h2>Today’s schedule</h2>
+      <div class="card-heading-row"><h2>Today’s schedule</h2><button class="secondary compact-action" id="editScheduleFromToday" type="button">Edit</button></div>
+      <p class="sub" id="fastingPlanStatus"></p>
       <div id="todaySchedule" class="timeline"></div>
     </div>
 
@@ -229,6 +230,7 @@
           <div class="setting-row">
             <label for="startingWeightSetting">Starting weight (<span class="settingsWeightUnit">kg</span>)</label>
             <input id="startingWeightSetting" name="startingWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" required />
+            <span class="setting-help">Your historical starting point. Current weight comes from your latest Progress weigh-in.</span>
           </div>
           <div class="setting-row">
             <label for="goalWeightSetting">Goal weight (<span class="settingsWeightUnit">kg</span>)</label>
@@ -267,15 +269,6 @@
               <label for="nutritionHeightFeet">Feet<input id="nutritionHeightFeet" type="number" min="3" max="8" step="1" inputmode="numeric" /></label>
               <label for="nutritionHeightInches">Inches<input id="nutritionHeightInches" type="number" min="0" max="11.9" step="0.1" inputmode="decimal" /></label>
             </div>
-          </div>
-          <div class="setting-row">
-            <label for="nutritionCurrentWeight">Current weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="nutritionCurrentWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" />
-            <span class="setting-help">Uses your latest recorded weight when the nutrition profile is first completed.</span>
-          </div>
-          <div class="setting-row">
-            <label for="nutritionGoalWeight">Goal weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="nutritionGoalWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" />
           </div>
           <div class="setting-row">
             <label for="nutritionActivity">Activity level</label>
@@ -335,6 +328,23 @@
           </dl>
           <div id="nutritionMessages" class="validation-summary" role="status" aria-live="polite"></div>
           <p class="setting-help safety-copy">These calculations are estimates, not guaranteed outcomes. Seek professional guidance if you are under 18, pregnant or breastfeeding, have an eating disorder or significant medical condition, or take medication affecting weight or appetite.</p>
+        </div>
+      </fieldset>
+
+      <fieldset class="settings-group" id="scheduleSettingsSection" tabindex="-1">
+        <legend>Daily schedule</legend>
+        <p class="setting-help">Create reusable events and choose the days on which they appear.</p>
+        <div id="scheduleEditorList" class="schedule-editor-list"></div>
+        <button class="secondary" id="addScheduleEvent" type="button">Add schedule event</button>
+      </fieldset>
+
+      <fieldset class="settings-group" id="fastingScheduleSection">
+        <legend>Fasting schedule</legend>
+        <p class="setting-help">Set an independent fasting window for each weekday. Overnight windows end the following day.</p>
+        <div id="fastingScheduleEditor" class="fasting-schedule-editor"></div>
+        <div class="settings-inline-actions">
+          <button class="secondary" id="applyMondayFasting" type="button">Apply Monday to all days</button>
+          <button class="secondary" id="resetFastingSchedule" type="button">Reset default</button>
         </div>
       </fieldset>
 
@@ -412,6 +422,22 @@
   </aside>
 </div>
 
+<div class="settings-overlay" id="scheduleEventOverlay" hidden>
+  <section class="dialog-card" id="scheduleEventDialog" role="dialog" aria-modal="true" aria-labelledby="scheduleEventTitle" tabindex="-1">
+    <form id="scheduleEventForm" novalidate>
+      <div class="settings-header"><h2 id="scheduleEventTitle">Add schedule event</h2><button class="secondary close-button" id="closeScheduleEvent" type="button" aria-label="Close schedule event editor">&times;</button></div>
+      <input id="scheduleEventId" type="hidden" />
+      <div class="form-field"><label for="scheduleEventName">Event name</label><input id="scheduleEventName" maxlength="80" required /><span class="field-error" id="scheduleEventNameError"></span></div>
+      <div class="form-field"><label for="scheduleEventTime">Time</label><input id="scheduleEventTime" type="time" required /><span class="field-error" id="scheduleEventTimeError"></span></div>
+      <div class="form-field"><label for="scheduleEventDescription">Description (optional)</label><textarea id="scheduleEventDescription" maxlength="160" rows="3"></textarea><span class="field-error" id="scheduleEventDescriptionError"></span></div>
+      <label class="toggle-row" for="scheduleEventEnabled"><span>Enabled</span><input class="toggle" id="scheduleEventEnabled" type="checkbox" checked /></label>
+      <fieldset class="day-picker"><legend>Days</legend><div id="scheduleEventDays" class="day-choice-grid"></div><span class="field-error" id="scheduleEventDaysError"></span><div class="settings-inline-actions"><button class="secondary day-shortcut" data-days="0,1,2,3,4,5,6" type="button">Every day</button><button class="secondary day-shortcut" data-days="1,2,3,4,5" type="button">Weekdays</button><button class="secondary day-shortcut" data-days="0,6" type="button">Weekends</button></div></fieldset>
+      <div class="dialog-actions"><button class="secondary" id="cancelScheduleEvent" type="button">Cancel</button><button type="submit">Save event</button></div>
+    </form>
+  </section>
+</div>
+
+  <script src="schedule.js"></script>
   <script src="storage.js"></script>
   <script src="theme.js"></script>
   <script src="nutrition.js"></script>

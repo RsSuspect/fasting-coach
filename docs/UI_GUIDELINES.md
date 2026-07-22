@@ -401,3 +401,9 @@ On wide desktop cards the ring and compact summary may share two balanced column
 Macros are separated from the primary progress area by spacing and a subtle divider. Protein and fibre retain progress indicators only when targets exist. Carbohydrates and fat remain quieter values. Meal totals use aligned labels and non-wrapping kcal values, switching between one and two columns only when space permits.
 
 When the current-time line is within the collision threshold of an event centre, only its badge shifts above or below the accurate line. The badge moves away from the nearest event and respects top and bottom boundaries; the marker line, rail dot, scheduled event, and calculated time position never move or disappear.
+
+## Schedule Editing
+
+Daily schedule events use compact bordered rows with a clear time/name hierarchy, supporting description and weekday text, and touch-sized Edit/Delete/order controls. Event editing uses the existing modal language, labelled fields, an explicit enabled control, weekday shortcuts, validation beside the affected field, Cancel without saving, and focus restoration.
+
+Per-day fasting windows use collapsible weekday rows on phones. Duration and overnight state are visible in each summary. Generated fasting start/end timeline markers remain visually related to the timeline but are distinguishable from user events without relying on colour alone.

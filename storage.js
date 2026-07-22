@@ -11,7 +11,7 @@
   const CALORIE_MODES = ["automatic","manual"];
   const DIETARY_PREFERENCES = ["none","vegetarian","vegan","mediterranean","lowCarbohydrate","keto"];
   const DEFAULT_SETTINGS = {
-    version: 2,
+    version: 3,
     profile: { startingWeightKg: 115, goalWeightKg: 80, weightUnit: "kg" },
     fasting: { protocol: "16:8", customHours: 16, electrolyteReminders: false },
     appearance: { theme: "system" },
@@ -29,7 +29,9 @@
       dietaryPreference: "none",
       proteinTargetGrams: null,
       fibreTargetGrams: null
-    }
+    },
+    schedule: FC.schedule.defaultSchedule(),
+    fastingSchedule: FC.schedule.defaultFastingSchedule()
   };
 
   function cloneDefaults() {
@@ -62,7 +64,7 @@
     if (nutritionSex==="preferNotToSay") calorieMode="manual";
     return {
       ...value,
-      version: 2,
+      version: 3,
       profile: {
         ...profile,
         startingWeightKg: safeStart,
@@ -94,13 +96,19 @@
         dietaryPreference: DIETARY_PREFERENCES.includes(nutrition.dietaryPreference) ? nutrition.dietaryPreference : defaults.nutrition.dietaryPreference,
         proteinTargetGrams: nullableNumber(nutrition.proteinTargetGrams,1,500),
         fibreTargetGrams: nullableNumber(nutrition.fibreTargetGrams,1,100)
-      }
+      },
+      schedule: FC.schedule.normaliseSchedule(value.schedule),
+      fastingSchedule: FC.schedule.normaliseFastingSchedule(value.fastingSchedule,fasting)
     };
   }
 
   function loadSettings() {
     try {
-      return normaliseSettings(JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"));
+      const raw=localStorage.getItem(SETTINGS_KEY);
+      const parsed=JSON.parse(raw || "null");
+      const settings=normaliseSettings(parsed);
+      if (raw && (!FC.schedule.isValidSchedule(parsed.schedule) || !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule) || parsed.version!==settings.version)) saveSettings(settings);
+      return settings;
     } catch (error) {
       return cloneDefaults();
     }
@@ -200,6 +208,8 @@
             (nutrition.targetDate!==undefined && typeof nutrition.targetDate!=="string");
           if (hasInvalidRequiredValue) throw new Error("The nutrition settings entry is invalid.");
         }
+        if (parsed.schedule!==undefined && !FC.schedule.isValidSchedule(parsed.schedule)) throw new Error("The schedule settings entry is invalid.");
+        if (parsed.fastingSchedule!==undefined && !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule)) throw new Error("The fasting schedule entry is invalid.");
       } else if (key==="weights") {
         const parsed = JSON.parse(value);
         if (!Array.isArray(parsed) || !parsed.every(item=>item && typeof item.date==="string" && Number.isFinite(Number(item.weight)) && Number(item.weight)>=18 && Number(item.weight)<=318)) {
@@ -223,7 +233,9 @@
   }
 
   function importBackupData(data) {
-    Object.entries(data).forEach(([key,value])=>localStorage.setItem(key,value));
+    Object.entries(data).forEach(([key,value])=>{
+      localStorage.setItem(key,key===SETTINGS_KEY ? JSON.stringify(normaliseSettings(JSON.parse(value))) : value);
+    });
   }
 
   function clearAll() {
