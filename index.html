@@ -17,7 +17,7 @@
     <div>
       <span class="brand-kicker">Your daily performance plan</span>
       <h1>Fitness Coach</h1>
-      <p id="headerSummary">115 kg → 80 kg · 1,800 kcal · 16:8 schedule</p>
+      <p id="headerSummary">Nutrition profile needed · 16:8 schedule</p>
     </div>
     <button class="icon-button" id="openSettings" type="button" aria-label="Open Settings" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -32,11 +32,12 @@
   <section id="today" class="view active">
     <div class="grid two today-overview">
       <div class="card weight-card">
-        <div class="card-heading-row"><div><div class="eyebrow">Progress</div><h2>Weight</h2></div><span class="pill" id="weightGoalSummary">Goal 80 kg</span></div>
-        <div class="weight-card-body"><div><div class="metric"><span id="currentWeight">115.0</span> <span id="currentWeightUnit">kg</span></div>
-        <div class="progress"><div id="weightProgress"></div></div>
+        <div class="card-heading-row"><div><div class="eyebrow">Progress</div><h2>Weight</h2></div><span class="pill" id="weightGoalSummary" hidden></span></div>
+        <div class="weight-card-body"><div><div class="metric" id="currentWeightDisplay" aria-label="Current weight not set"><span id="currentWeight">Not set</span> <span id="currentWeightUnit" hidden>kg</span></div>
+        <div class="progress" id="weightProgressTrack" hidden><div id="weightProgress"></div></div>
         <div class="sub" id="weightMessage"></div><div class="weight-change" id="weightChange"></div></div>
         <canvas id="weightSparkline" width="220" height="80" aria-label="Recent weight trend" role="img"></canvas></div>
+        <button class="secondary compact-action" id="openProgressFromWeight" type="button">Log weight</button>
       </div>
       <div class="card nutrition-hero">
         <div class="eyebrow">Today’s nutrition</div>
@@ -229,12 +230,12 @@
         <div class="settings-list">
           <div class="setting-row">
             <label for="startingWeightSetting">Starting weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="startingWeightSetting" name="startingWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" required />
+            <input id="startingWeightSetting" name="startingWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" placeholder="Not set" />
             <span class="setting-help">Your historical starting point. Current weight comes from your latest Progress weigh-in.</span>
           </div>
           <div class="setting-row">
             <label for="goalWeightSetting">Goal weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="goalWeightSetting" name="goalWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" required />
+            <input id="goalWeightSetting" name="goalWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" placeholder="Not set" />
           </div>
           <div class="setting-row">
             <span class="setting-label" id="weightUnitLabel">Preferred weight unit</span>

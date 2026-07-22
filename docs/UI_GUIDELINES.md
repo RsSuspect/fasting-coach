@@ -373,6 +373,8 @@ Meal sections are compact rows. Empty sections show the meal name, zero calories
 
 Weight charts use subtle gridlines, a clear accent line, outlined points, readable axis labels, and no fabricated intermediate values. One entry appears as a centred point with guidance to add another weigh-in. The Today sparkline appears only when at least two stored measurements exist.
 
+Missing personal weights use an explicit text state such as “Not set” with an accessible “Current weight not set” label. Do not use zero, `NaN`, an unexplained dash, fictional goal badges, remaining-weight copy, or an active progress bar. A concise Log weight action may route to Progress. Current-only and goal-only states show only the value that genuinely exists.
+
 ## Compact Dashboard Cards
 
 Dashboard cards size to their content. A compact supporting card must not inherit the height of a larger hero card merely because the cards share a grid row. Use start alignment, content-sized rows, and a small purposeful minimum height. The Today weight summary keeps its current value, goal, remaining amount, and latest measured change together; its sparkline occupies no space until at least two real measurements exist.

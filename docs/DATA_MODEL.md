@@ -39,7 +39,7 @@ Example:
   "units": "kg",
   "theme": "system",
   "fastingHours": 16,
-  "goalWeight": 100,
+  "goalWeight": null,
   "nutrition": {}
 }
 ```
@@ -74,7 +74,13 @@ Current settings use schema version 3. They retain `profile`, `fasting`, `appear
 
 Weekday keys use JavaScript weekday numbers (`0` Sunday through `6` Saturday). An end time at or before its start time is an overnight window ending the next day. Older settings and backups without these objects are migrated to the legacy daily schedule and default fasting window during loading or import.
 
-`profile.goalWeightKg` is the authoritative goal weight. Current weight is the latest entry in `weights`; the legacy nutrition weight properties remain readable and are synchronised when settings or a weigh-in are saved for backward compatibility.
+`profile.goalWeightKg` is the authoritative goal weight. Current weight is the latest valid entry in `weights`; `profile.startingWeightKg` is historical and is set from the first real weigh-in when absent. It is never substituted for a missing current weight. The legacy nutrition weight properties remain readable and are synchronised when settings or a weigh-in are saved for backward compatibility.
+
+Personal weights have no seeded defaults. An unset starting or goal weight is represented by `null`, while missing weight history is represented by an absent `weights` key or an empty array. Zero is not an empty-state substitute and values outside the accepted weight range normalise to `null` in settings or are excluded from runtime weight history.
+
+Fresh initialization, reset, and migration do not create a weigh-in or populate personal weight fields. Existing stored values are preserved, including values matching historical defaults, because older data contains no reliable metadata proving whether a value was seeded or user-entered.
+
+Exports enumerate stored data only and therefore do not synthesize missing weights. Imports accept settings with nullable or missing weight fields and legacy backups with valid real weights. Valid numeric strings continue to normalize to numbers; malformed, non-finite, zero, negative, or out-of-range personal weights are rejected by backup validation or normalized to the documented empty state.
 
 ---
 

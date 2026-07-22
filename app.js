@@ -41,11 +41,11 @@
   }
 
   function formatWeight(kg,unit=FC.state.settings.profile.weightUnit) {
-    return toDisplayWeight(kg,unit).toFixed(1);
+    return kg!==null&&kg!==undefined&&kg!==""&&Number.isFinite(Number(kg)) ? toDisplayWeight(Number(kg),unit).toFixed(1) : "";
   }
 
   function compactWeight(kg) {
-    return Number(toDisplayWeight(kg).toFixed(1)).toString();
+    return Number.isFinite(Number(kg)) && Number(kg)>0 ? Number(toDisplayWeight(Number(kg)).toFixed(1)).toString() : "";
   }
 
   function localDateKey(value=new Date()) {
@@ -288,12 +288,12 @@
   }
 
   function getWeights() {
-    return FC.storage.getWeights(dateKey,FC.state.settings.profile.startingWeightKg);
+    return FC.storage.getWeights();
   }
 
   function latestWeightKg() {
     const weights = getWeights();
-    return weights.length ? Number(weights[weights.length-1].weight) : FC.state.settings.profile.startingWeightKg;
+    return weights.length ? Number(weights[weights.length-1].weight) : null;
   }
 
   function effectiveNutritionProfile() {
@@ -310,15 +310,24 @@
     const weights = getWeights();
     const start = FC.state.settings.profile.startingWeightKg;
     const goal = FC.state.settings.profile.goalWeightKg;
-    const latest = weights.length ? Number(weights[weights.length-1].weight) : start;
-    document.getElementById("currentWeight").textContent = formatWeight(latest);
-    document.getElementById("currentWeightUnit").textContent = unitLabel();
-    document.getElementById("weightGoalSummary").textContent = `Goal ${formatWeight(goal)} ${unitLabel()}`;
-    const percent = Math.max(0,Math.min(100,((start-latest)/(start-goal))*100));
-    document.getElementById("weightProgress").style.width = percent+"%";
-    document.getElementById("weightMessage").textContent = `${formatWeight(Math.max(0,latest-goal))} ${unitLabel()} remaining`;
+    const latest = latestWeightKg();
+    const hasCurrent=latest!==null,hasGoal=goal!==null,hasStart=start!==null;
+    const current=document.getElementById("currentWeight"),currentUnit=document.getElementById("currentWeightUnit"),display=document.getElementById("currentWeightDisplay");
+    current.textContent=hasCurrent ? formatWeight(latest) : "Not set";
+    currentUnit.textContent=unitLabel();
+    currentUnit.hidden=!hasCurrent;
+    display.setAttribute("aria-label",hasCurrent ? `Current weight ${formatWeight(latest)} ${unitLabel()}` : "Current weight not set");
+    const goalBadge=document.getElementById("weightGoalSummary");
+    goalBadge.hidden=!hasGoal;
+    goalBadge.textContent=hasGoal ? `Goal ${formatWeight(goal)} ${unitLabel()}` : "";
+    const canShowProgress=hasCurrent&&hasGoal&&hasStart&&start!==goal;
+    const progressTrack=document.getElementById("weightProgressTrack");
+    progressTrack.hidden=!canShowProgress;
+    progressTrack.setAttribute("aria-hidden",String(!canShowProgress));
+    document.getElementById("weightProgress").style.width=canShowProgress ? Math.max(0,Math.min(100,((start-latest)/(start-goal))*100))+"%" : "0%";
+    document.getElementById("weightMessage").textContent=!hasCurrent ? "Log your first weight to begin tracking." : !hasGoal ? "Add a goal weight to track progress." : `${formatWeight(Math.max(0,latest-goal))} ${unitLabel()} remaining`;
     const change=weights.length>1 ? latest-weights[weights.length-2].weight : null;
-    document.getElementById("weightChange").textContent = weights.length===0 ? "Log your first weigh-in to begin your trend" : change===null ? "Add another weigh-in to reveal your trend" : `${change>0 ? "+" : ""}${formatWeight(change)} ${unitLabel()} since last entry`;
+    document.getElementById("weightChange").textContent = weights.length===0 ? "" : change===null ? "Add another weigh-in to reveal your trend" : `${change>0 ? "+" : ""}${formatWeight(change)} ${unitLabel()} since last entry`;
     document.getElementById("weightHistory").innerHTML = weights.slice().reverse().map(entry=>
       `<div class="row" style="padding:8px 0;border-top:1px solid var(--line)"><span>${entry.date}</span><strong>${formatWeight(entry.weight)} ${unitLabel()}</strong></div>`
     ).join("");
@@ -370,8 +379,9 @@
     if (!weights.length) { chartMessage.textContent="Log your first weight to begin a trend."; return; }
     chartMessage.textContent=weights.length===1 ? "Add another weigh-in to reveal your weight trend." : `${weights.length} recorded weigh-ins shown without interpolated values.`;
     const values = weights.map(entry=>entry.weight);
-    const min = Math.min(FC.state.settings.profile.goalWeightKg,...values)-2;
-    const max = Math.max(FC.state.settings.profile.startingWeightKg,...values)+2;
+    const referenceValues=[...values,FC.state.settings.profile.goalWeightKg,FC.state.settings.profile.startingWeightKg].filter(value=>Number.isFinite(Number(value))&&Number(value)>0).map(Number);
+    const min = Math.min(...referenceValues)-2;
+    const max = Math.max(...referenceValues)+2;
     const points = weights.map((entry,index)=>({
       x: pad + (weights.length===1 ? .5 : index/(weights.length-1))*width,
       y: pad + (max-entry.weight)/(max-min)*height
@@ -488,7 +498,9 @@
     const protocol = settings.fasting.protocol==="Custom" ? `${settings.fasting.customHours}h fast` : settings.fasting.protocol;
     const nutrition = renderNutritionSummary();
     const calorieSummary = nutrition.complete ? `${nutrition.suggestedCalorieTarget.toLocaleString()} kcal` : "Nutrition profile needed";
-    document.getElementById("headerSummary").textContent = `${compactWeight(settings.profile.startingWeightKg)} ${unitLabel()} → ${compactWeight(settings.profile.goalWeightKg)} ${unitLabel()} · ${calorieSummary} · ${protocol} schedule`;
+    const current=latestWeightKg(),goal=settings.profile.goalWeightKg;
+    const weightSummary=current!==null&&goal!==null ? `${compactWeight(current)} ${unitLabel()} → ${compactWeight(goal)} ${unitLabel()}` : current!==null ? `${compactWeight(current)} ${unitLabel()}` : goal!==null ? `Goal ${compactWeight(goal)} ${unitLabel()}` : "";
+    document.getElementById("headerSummary").textContent = [weightSummary,calorieSummary,`${protocol} schedule`].filter(Boolean).join(" · ");
     const weightInput = document.getElementById("weightInput");
     weightInput.placeholder = settings.profile.weightUnit==="lb" ? "e.g. 247.8" : "e.g. 112.4";
     weightInput.min = settings.profile.weightUnit==="lb" ? "40" : "18";
@@ -524,6 +536,7 @@
     renderWater();
   });
   document.getElementById("completeNutritionProfile").addEventListener("click",()=>FC.settings.openNutrition());
+  document.getElementById("openProgressFromWeight").addEventListener("click",()=>{ activateView("progress"); document.getElementById("weightInput").focus(); });
   document.getElementById("editScheduleFromToday").addEventListener("click",()=>FC.settings.openSchedule());
   document.addEventListener("click",event=>{ if (event.target.closest(".edit-schedule-empty")) FC.settings.openSchedule(); });
   document.getElementById("todayAddMeal").addEventListener("click",()=>{ selectedFoodDate=dateKey; openFoodDialog("Breakfast","","today"); });
@@ -564,6 +577,7 @@
     else weights.push({date:dateKey,weight:weightKg});
     weights.sort((a,b)=>a.date.localeCompare(b.date));
     FC.storage.saveWeights(weights);
+    if (FC.state.settings.profile.startingWeightKg===null) FC.state.settings.profile.startingWeightKg=weightKg;
     FC.state.settings.nutrition.currentWeightKg=weightKg;
     FC.storage.saveSettings(FC.state.settings);
     document.getElementById("weightInput").value="";

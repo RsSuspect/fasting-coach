@@ -12,7 +12,7 @@
   const DIETARY_PREFERENCES = ["none","vegetarian","vegan","mediterranean","lowCarbohydrate","keto"];
   const DEFAULT_SETTINGS = {
     version: 3,
-    profile: { startingWeightKg: 115, goalWeightKg: 80, weightUnit: "kg" },
+    profile: { startingWeightKg: null, goalWeightKg: null, weightUnit: "kg" },
     fasting: { protocol: "16:8", customHours: 16, electrolyteReminders: false },
     appearance: { theme: "system" },
     nutrition: {
@@ -45,15 +45,7 @@
     const fasting = value.fasting && typeof value.fasting==="object" ? value.fasting : {};
     const appearance = value.appearance && typeof value.appearance==="object" ? value.appearance : {};
     const nutrition = value.nutrition && typeof value.nutrition==="object" && !Array.isArray(value.nutrition) ? value.nutrition : {};
-    const startingWeightKg = Number(profile.startingWeightKg);
-    const goalWeightKg = Number(profile.goalWeightKg);
     const customHours = Number(fasting.customHours);
-    let safeStart = Number.isFinite(startingWeightKg) && startingWeightKg>=18 && startingWeightKg<=318 ? startingWeightKg : defaults.profile.startingWeightKg;
-    let safeGoal = Number.isFinite(goalWeightKg) && goalWeightKg>=18 && goalWeightKg<=318 ? goalWeightKg : defaults.profile.goalWeightKg;
-    if (safeStart<=safeGoal) {
-      safeStart=defaults.profile.startingWeightKg;
-      safeGoal=defaults.profile.goalWeightKg;
-    }
     const nullableNumber = (candidate,min,max)=>{
       if (candidate===null || candidate==="" || candidate===undefined) return null;
       const number = Number(candidate);
@@ -67,8 +59,8 @@
       version: 3,
       profile: {
         ...profile,
-        startingWeightKg: safeStart,
-        goalWeightKg: safeGoal,
+        startingWeightKg: nullableNumber(profile.startingWeightKg,18,318),
+        goalWeightKg: nullableNumber(profile.goalWeightKg,18,318),
         weightUnit: profile.weightUnit==="lb" ? "lb" : "kg"
       },
       fasting: {
@@ -107,10 +99,14 @@
       const raw=localStorage.getItem(SETTINGS_KEY);
       const parsed=JSON.parse(raw || "null");
       const settings=normaliseSettings(parsed);
-      if (raw && (!FC.schedule.isValidSchedule(parsed.schedule) || !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule) || parsed.version!==settings.version)) saveSettings(settings);
+      const profile=parsed&&parsed.profile;
+      const weightsNormalised=!profile||profile.startingWeightKg!==settings.profile.startingWeightKg||profile.goalWeightKg!==settings.profile.goalWeightKg;
+      if (raw && (!FC.schedule.isValidSchedule(parsed.schedule) || !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule) || parsed.version!==settings.version || weightsNormalised)) saveSettings(settings);
       return settings;
     } catch (error) {
-      return cloneDefaults();
+      const settings=cloneDefaults();
+      saveSettings(settings);
+      return settings;
     }
   }
 
@@ -118,8 +114,14 @@
     localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
   }
 
-  function getWeights(dateKey,startingWeightKg) {
-    return JSON.parse(localStorage.getItem("weights") || `[{"date":"${dateKey}","weight":${startingWeightKg}}]`);
+  function getWeights() {
+    try {
+      const weights=JSON.parse(localStorage.getItem("weights") || "[]");
+      if (!Array.isArray(weights)) return [];
+      return weights.filter(item=>item&&typeof item.date==="string"&&Number.isFinite(Number(item.weight))&&Number(item.weight)>=18&&Number(item.weight)<=318).map(item=>({...item,weight:Number(item.weight)})).sort((a,b)=>a.date.localeCompare(b.date));
+    } catch (error) {
+      return [];
+    }
   }
 
   function saveWeights(weights) {
@@ -182,10 +184,11 @@
         const profile = parsed && parsed.profile;
         const fasting = parsed && parsed.fasting;
         const appearance = parsed && parsed.appearance;
-        const start = Number(profile && profile.startingWeightKg);
-        const goal = Number(profile && profile.goalWeightKg);
+        const validOptionalWeight=value=>value===null||value===undefined||value===""||(Number.isFinite(Number(value))&&Number(value)>=18&&Number(value)<=318);
+        const startValue=profile&&profile.startingWeightKg,goalValue=profile&&profile.goalWeightKg;
+        const hasStart=startValue!==null&&startValue!==undefined&&startValue!=="",hasGoal=goalValue!==null&&goalValue!==undefined&&goalValue!=="";
         const custom = Number(fasting && fasting.customHours);
-        if (!profile || !fasting || !appearance || !Number.isFinite(start) || !Number.isFinite(goal) || start<18 || start>318 || goal<18 || goal>318 || start<=goal || !["kg","lb"].includes(profile.weightUnit) || !FASTING_PROTOCOLS.includes(fasting.protocol) || !Number.isFinite(custom) || custom<1 || custom>168 || typeof fasting.electrolyteReminders!=="boolean" || !THEMES.includes(appearance.theme)) {
+        if (!fasting || !appearance || !validOptionalWeight(startValue) || !validOptionalWeight(goalValue) || (profile&&profile.weightUnit!==undefined&&!["kg","lb"].includes(profile.weightUnit)) || (hasStart&&hasGoal&&Number(startValue)<=Number(goalValue)) || !FASTING_PROTOCOLS.includes(fasting.protocol) || !Number.isFinite(custom) || custom<1 || custom>168 || typeof fasting.electrolyteReminders!=="boolean" || !THEMES.includes(appearance.theme)) {
           throw new Error("The settings entry is invalid.");
         }
         if (parsed.nutrition!==undefined) {

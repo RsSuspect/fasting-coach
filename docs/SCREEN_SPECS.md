@@ -118,6 +118,17 @@ The live timeline marker keeps its calculated line and rail dot at the exact tim
 
 Weight is a compact supporting card with current weight, goal, amount remaining, and the latest measured change when multiple records exist. A small point-to-point sparkline appears only with sufficient stored data. Water is a compact utility card with eight visual steps and retained readable totals and controls.
 
+### Weight and Header Empty States
+
+The header constructs its summary from available values without empty separators:
+
+- Neither weight: omit weight text and retain nutrition/fasting status.
+- Current only: show the current weight without an arrow or invented goal.
+- Goal only: show `Goal` and the configured goal without an invented current value.
+- Both: show current weight, arrow, and goal using the preferred unit.
+
+The Today weight card always retains its title. With neither value, it announces “Current weight not set,” hides the goal and progress presentation, and prompts the user to log a first weight. With current weight only, it shows that weight and prompts for a goal without calculating remaining weight. With goal only, it shows the goal badge, leaves current weight unset, and prompts for a first weigh-in. With both current and goal it shows remaining weight; goal progress appears only when the historical starting weight is also available. Trend text and charts use stored weigh-ins only.
+
 The weight card sizes to its content and does not stretch to match the calorie hero on wider screens. With zero or one recorded measurement it reserves no sparkline space; with multiple measurements it shows only the real point-to-point history.
 
 Today's schedule is a concise overview containing every existing schedule entry with compact static rows. For the current local date, it shows a live current-time line positioned from actual schedule times, slightly mutes elapsed events, identifies the active interval, and marks the next event without implying completion. The time context refreshes at least once per minute and whenever the page becomes visible again.

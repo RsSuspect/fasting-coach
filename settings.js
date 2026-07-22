@@ -71,13 +71,13 @@
   }
 
   function nutritionFromForm() {
-    const goalWeight=Number(document.getElementById("goalWeightSetting").value);
+    const goalWeight=optionalNumber(document.getElementById("goalWeightSetting"));
     return {
       age: optionalNumber(nutritionFields.age),
       sex: nutritionFields.sex.value,
       heightCm: heightFromForm(),
       currentWeightKg: FC.app.latestWeightKg(),
-      goalWeightKg: FC.app.toKilograms(goalWeight,formWeightUnit),
+      goalWeightKg: goalWeight===null ? null : FC.app.toKilograms(goalWeight,formWeightUnit),
       activityLevel: nutritionFields.activityLevel.value,
       targetDate: nutritionFields.targetDate.value,
       calorieMode: selectedCalorieMode(),
@@ -166,8 +166,8 @@
   function fillForm() {
     const settings = FC.state.settings;
     formWeightUnit = settings.profile.weightUnit;
-    document.getElementById("startingWeightSetting").value = FC.app.formatWeight(settings.profile.startingWeightKg,formWeightUnit);
-    document.getElementById("goalWeightSetting").value = FC.app.formatWeight(settings.profile.goalWeightKg,formWeightUnit);
+    document.getElementById("startingWeightSetting").value = settings.profile.startingWeightKg===null ? "" : FC.app.formatWeight(settings.profile.startingWeightKg,formWeightUnit);
+    document.getElementById("goalWeightSetting").value = settings.profile.goalWeightKg===null ? "" : FC.app.formatWeight(settings.profile.goalWeightKg,formWeightUnit);
     document.querySelector(`input[name="weightUnit"][value="${formWeightUnit}"]`).checked = true;
     document.querySelectorAll(".settingsWeightUnit").forEach(element=>element.textContent=formWeightUnit);
     document.getElementById("fastingProtocol").value = settings.fasting.protocol;
@@ -383,14 +383,16 @@
 
   settingsForm.addEventListener("submit",event=>{
     event.preventDefault();
-    const startKg = FC.app.toKilograms(Number(document.getElementById("startingWeightSetting").value),formWeightUnit);
-    const goalKg = FC.app.toKilograms(Number(document.getElementById("goalWeightSetting").value),formWeightUnit);
+    const startValue=optionalNumber(document.getElementById("startingWeightSetting"));
+    const goalValue=optionalNumber(document.getElementById("goalWeightSetting"));
+    const startKg = startValue===null ? null : FC.app.toKilograms(startValue,formWeightUnit);
+    const goalKg = goalValue===null ? null : FC.app.toKilograms(goalValue,formWeightUnit);
     const protocol = document.getElementById("fastingProtocol").value;
     const customHours = Number(customFastingHours.value);
     const nutrition = nutritionFromForm();
     const nutritionResult = FC.nutrition.calculate(nutrition);
-    if (!Number.isFinite(startKg) || !Number.isFinite(goalKg) || startKg<18 || startKg>318 || goalKg<18 || goalKg>318 || startKg<=goalKg) {
-      setStatus(settingsStatus,"Starting weight must be greater than goal weight, and both must be valid.","error");
+    if ((startKg!==null&&(!Number.isFinite(startKg)||startKg<18||startKg>318)) || (goalKg!==null&&(!Number.isFinite(goalKg)||goalKg<18||goalKg>318)) || (startKg!==null&&goalKg!==null&&startKg<=goalKg)) {
+      setStatus(settingsStatus,"Weights must be valid; when both are set, starting weight must be greater than goal weight.","error");
       return;
     }
     if (protocol==="Custom" && (!Number.isFinite(customHours) || customHours<1 || customHours>168)) {
