@@ -129,6 +129,14 @@ The header constructs its summary from available values without empty separators
 
 The Today weight card always retains its title. With neither value, it announces “Current weight not set,” hides the goal and progress presentation, and prompts the user to log a first weight. With current weight only, it shows that weight and prompts for a goal without calculating remaining weight. With goal only, it shows the goal badge, leaves current weight unset, and prompts for a first weigh-in. With both current and goal it shows remaining weight; goal progress appears only when the historical starting weight is also available. Trend text and charts use stored weigh-ins only.
 
+### Profile Units and Validation
+
+Profile offers Kilograms, Pounds, and Stones and pounds as one weight-unit selector. Stones mode replaces each active single weight input with labelled Stones and Pounds fields; pounds must remain below 14. Progress uses the same preference without changing stored history. Height has an independent Centimetres or Feet and inches selector; inches must remain below 12. Inactive fields are hidden and disabled.
+
+Saving Settings validates only values the user entered. Current weight is never a Profile field, an empty goal remains valid, and an incomplete nutrition estimate does not block unrelated Settings changes. The live nutrition summary instead identifies genuinely missing calculation inputs, including a Progress weigh-in, height, goal for automatic weight-loss calculation, age, activity level, or future target date.
+
+The Nutrition target-date input fills a `minmax(0, 1fr)` row with zero intrinsic minimum width and a 100% maximum width. Its native iOS calendar control remains visible and contained at phone widths, enlarged text, and 200% zoom.
+
 The weight card sizes to its content and does not stretch to match the calorie hero on wider screens. With zero or one recorded measurement it reserves no sparkline space; with multiple measurements it shows only the real point-to-point history.
 
 Today's schedule is a concise overview containing every existing schedule entry with compact static rows. For the current local date, it shows a live current-time line positioned from actual schedule times, slightly mutes elapsed events, identifies the active interval, and marks the next event without implying completion. The time context refreshes at least once per minute and whenever the page becomes visible again.

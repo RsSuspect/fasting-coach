@@ -3,7 +3,10 @@
 
   const SETTINGS_KEY = "fastingCoachSettings";
   const APP_VERSION = "2.1.0";
-  const KG_TO_LB = 2.2046226218;
+  const LB_TO_KG = 0.45359237;
+  const KG_TO_LB = 1/LB_TO_KG;
+  const WEIGHT_UNITS = ["kg","lb","st"];
+  const HEIGHT_UNITS = ["cm","ft-in"];
   const FASTING_PROTOCOLS = ["16:8","18:6","20:4","OMAD","24 hours","36 hours","48 hours","72 hours","Custom"];
   const THEMES = ["system","light","dark"];
   const NUTRITION_SEXES = ["female","male","preferNotToSay"];
@@ -11,8 +14,8 @@
   const CALORIE_MODES = ["automatic","manual"];
   const DIETARY_PREFERENCES = ["none","vegetarian","vegan","mediterranean","lowCarbohydrate","keto"];
   const DEFAULT_SETTINGS = {
-    version: 3,
-    profile: { startingWeightKg: null, goalWeightKg: null, weightUnit: "kg" },
+    version: 4,
+    profile: { startingWeightKg: null, goalWeightKg: null, weightUnit: "kg", heightUnit: "cm" },
     fasting: { protocol: "16:8", customHours: 16, electrolyteReminders: false },
     appearance: { theme: "system" },
     nutrition: {
@@ -56,12 +59,13 @@
     if (nutritionSex==="preferNotToSay") calorieMode="manual";
     return {
       ...value,
-      version: 3,
+      version: 4,
       profile: {
         ...profile,
         startingWeightKg: nullableNumber(profile.startingWeightKg,18,318),
         goalWeightKg: nullableNumber(profile.goalWeightKg,18,318),
-        weightUnit: profile.weightUnit==="lb" ? "lb" : "kg"
+        weightUnit: WEIGHT_UNITS.includes(profile.weightUnit) ? profile.weightUnit : "kg",
+        heightUnit: HEIGHT_UNITS.includes(profile.heightUnit) ? profile.heightUnit : (profile.weightUnit==="lb" ? "ft-in" : "cm")
       },
       fasting: {
         ...fasting,
@@ -101,7 +105,8 @@
       const settings=normaliseSettings(parsed);
       const profile=parsed&&parsed.profile;
       const weightsNormalised=!profile||profile.startingWeightKg!==settings.profile.startingWeightKg||profile.goalWeightKg!==settings.profile.goalWeightKg;
-      if (raw && (!FC.schedule.isValidSchedule(parsed.schedule) || !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule) || parsed.version!==settings.version || weightsNormalised)) saveSettings(settings);
+      const unitsNormalised=!profile||profile.weightUnit!==settings.profile.weightUnit||profile.heightUnit!==settings.profile.heightUnit;
+      if (raw && (!FC.schedule.isValidSchedule(parsed.schedule) || !FC.schedule.isValidFastingSchedule(parsed.fastingSchedule) || parsed.version!==settings.version || weightsNormalised || unitsNormalised)) saveSettings(settings);
       return settings;
     } catch (error) {
       const settings=cloneDefaults();
@@ -188,7 +193,7 @@
         const startValue=profile&&profile.startingWeightKg,goalValue=profile&&profile.goalWeightKg;
         const hasStart=startValue!==null&&startValue!==undefined&&startValue!=="",hasGoal=goalValue!==null&&goalValue!==undefined&&goalValue!=="";
         const custom = Number(fasting && fasting.customHours);
-        if (!fasting || !appearance || !validOptionalWeight(startValue) || !validOptionalWeight(goalValue) || (profile&&profile.weightUnit!==undefined&&!["kg","lb"].includes(profile.weightUnit)) || (hasStart&&hasGoal&&Number(startValue)<=Number(goalValue)) || !FASTING_PROTOCOLS.includes(fasting.protocol) || !Number.isFinite(custom) || custom<1 || custom>168 || typeof fasting.electrolyteReminders!=="boolean" || !THEMES.includes(appearance.theme)) {
+        if (!fasting || !appearance || !validOptionalWeight(startValue) || !validOptionalWeight(goalValue) || (profile&&profile.weightUnit!==undefined&&!WEIGHT_UNITS.includes(profile.weightUnit)) || (profile&&profile.heightUnit!==undefined&&!HEIGHT_UNITS.includes(profile.heightUnit)) || (hasStart&&hasGoal&&Number(startValue)<=Number(goalValue)) || !FASTING_PROTOCOLS.includes(fasting.protocol) || !Number.isFinite(custom) || custom<1 || custom>168 || typeof fasting.electrolyteReminders!=="boolean" || !THEMES.includes(appearance.theme)) {
           throw new Error("The settings entry is invalid.");
         }
         if (parsed.nutrition!==undefined) {
@@ -253,7 +258,31 @@
     return unit==="lb" ? value/KG_TO_LB : value;
   }
 
-  FC.constants = { SETTINGS_KEY, APP_VERSION, FASTING_PROTOCOLS, THEMES, NUTRITION_SEXES, ACTIVITY_LEVELS, CALORIE_MODES, DIETARY_PREFERENCES };
+  function kilogramsToStones(kg,precision=1) {
+    const totalPounds=Number(kg)*KG_TO_LB;
+    let stones=Math.floor(totalPounds/14);
+    let pounds=Number((totalPounds-stones*14).toFixed(precision));
+    if (pounds>=14) { stones+=1; pounds=0; }
+    return {stones,pounds};
+  }
+
+  function stonesToKilograms(stones,pounds) {
+    return (Number(stones)*14+Number(pounds))*LB_TO_KG;
+  }
+
+  function centimetresToFeetInches(cm,precision=1) {
+    const totalInches=Number(cm)/2.54;
+    let feet=Math.floor(totalInches/12);
+    let inches=Number((totalInches-feet*12).toFixed(precision));
+    if (inches>=12) { feet+=1; inches=0; }
+    return {feet,inches};
+  }
+
+  function feetInchesToCentimetres(feet,inches) {
+    return (Number(feet)*12+Number(inches))*2.54;
+  }
+
+  FC.constants = { SETTINGS_KEY, APP_VERSION, FASTING_PROTOCOLS, THEMES, NUTRITION_SEXES, ACTIVITY_LEVELS, CALORIE_MODES, DIETARY_PREFERENCES, WEIGHT_UNITS, HEIGHT_UNITS };
   FC.storage = {
     cloneDefaults,
     normaliseSettings,
@@ -272,6 +301,6 @@
     importBackupData,
     clearAll
   };
-  FC.units = { toDisplayWeight, toKilograms };
+  FC.units = { LB_TO_KG, KG_TO_LB, toDisplayWeight, toKilograms, kilogramsToStones, stonesToKilograms, centimetresToFeetInches, feetInchesToCentimetres };
   FC.state = { settings: loadSettings() };
 })(window.FastingCoach = window.FastingCoach || {});

@@ -82,6 +82,19 @@ Fresh initialization, reset, and migration do not create a weigh-in or populate 
 
 Exports enumerate stored data only and therefore do not synthesize missing weights. Imports accept settings with nullable or missing weight fields and legacy backups with valid real weights. Valid numeric strings continue to normalize to numbers; malformed, non-finite, zero, negative, or out-of-range personal weights are rejected by backup validation or normalized to the documented empty state.
 
+Settings schema version 4 stores unit preferences in `fastingCoachSettings.profile`:
+
+```json
+{
+  "weightUnit": "kg",
+  "heightUnit": "cm"
+}
+```
+
+Supported weight-unit values are `kg`, `lb`, and `st`; supported height-unit values are `cm` and `ft-in`. Existing `lb` profiles without a height preference migrate to `ft-in`; all other older profiles default to `cm`. Unknown runtime preferences normalize to `kg` and `cm`. New backups validate these enums while older backups without `heightUnit` remain accepted.
+
+Unit preferences affect input and presentation only. Weight history, starting weight, goal weight, and legacy nutrition weights remain canonical kilograms. Nutrition height remains canonical centimetres. Stones use `kilograms = (stones × 14 + pounds) × 0.45359237`; feet/inches use `centimetres = (feet × 12 + inches) × 2.54`. Derived paired fields are not exported as authoritative data.
+
 ---
 
 ## Weight History

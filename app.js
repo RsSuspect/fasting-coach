@@ -29,7 +29,7 @@
   let timelineResizeFrame = 0;
 
   function unitLabel() {
-    return FC.state.settings.profile.weightUnit==="lb" ? "lb" : "kg";
+    return FC.state.settings.profile.weightUnit==="lb" ? "lb" : FC.state.settings.profile.weightUnit==="st" ? "st + lb" : "kg";
   }
 
   function toDisplayWeight(kg,unit=FC.state.settings.profile.weightUnit) {
@@ -41,11 +41,35 @@
   }
 
   function formatWeight(kg,unit=FC.state.settings.profile.weightUnit) {
-    return kg!==null&&kg!==undefined&&kg!==""&&Number.isFinite(Number(kg)) ? toDisplayWeight(Number(kg),unit).toFixed(1) : "";
+    if (kg===null||kg===undefined||kg===""||!Number.isFinite(Number(kg))) return "";
+    if (unit==="st") {
+      const {stones,pounds}=FC.units.kilogramsToStones(Number(kg));
+      return `${stones} st ${pounds} lb`;
+    }
+    return toDisplayWeight(Number(kg),unit).toFixed(1);
   }
 
   function compactWeight(kg) {
-    return Number.isFinite(Number(kg)) && Number(kg)>0 ? Number(toDisplayWeight(Number(kg)).toFixed(1)).toString() : "";
+    if (!Number.isFinite(Number(kg))||Number(kg)<=0) return "";
+    if (FC.state.settings.profile.weightUnit==="st") {
+      const {stones,pounds}=FC.units.kilogramsToStones(Number(kg),0);
+      return `${stones} st ${pounds} lb`;
+    }
+    return `${Number(toDisplayWeight(Number(kg)).toFixed(1))} ${unitLabel()}`;
+  }
+
+  function weightText(kg) {
+    return FC.state.settings.profile.weightUnit==="st" ? formatWeight(kg) : `${formatWeight(kg)} ${unitLabel()}`;
+  }
+
+  function accessibleWeightText(kg) {
+    if (FC.state.settings.profile.weightUnit==="st") return formatWeight(kg).replace(" st "," stones ").replace(" lb"," pounds");
+    return `${formatWeight(kg)} ${FC.state.settings.profile.weightUnit==="lb"?"pounds":"kilograms"}`;
+  }
+
+  function weightDeltaText(kg) {
+    if (FC.state.settings.profile.weightUnit==="st") return `${Math.abs(kg*FC.units.KG_TO_LB).toFixed(1)} lb`;
+    return `${formatWeight(Math.abs(kg))} ${unitLabel()}`;
   }
 
   function localDateKey(value=new Date()) {
@@ -207,7 +231,7 @@
 
   function effectiveNutritionTarget() {
     const result=FC.nutrition.calculate(effectiveNutritionProfile());
-    return result.complete ? result.suggestedCalorieTarget : null;
+    return result;
   }
 
   function renderFoodScreen() {
@@ -227,7 +251,8 @@
     const entries=entriesFor(dateKey);
     const totals=FC.food.totals(entries);
     const nutrition=FC.state.settings.nutrition;
-    const target=effectiveNutritionTarget();
+    const nutritionResult=effectiveNutritionTarget();
+    const target=nutritionResult.complete ? nutritionResult.suggestedCalorieTarget : null;
     const consumed=document.getElementById("todayCaloriesConsumed");
     const targetText=document.getElementById("todayCalorieTarget");
     const status=document.getElementById("todayCalorieStatus");
@@ -239,7 +264,7 @@
     consumed.textContent=totals.calories.toLocaleString();
     if (target===null) {
       targetText.textContent="Complete nutrition profile in Settings";
-      status.textContent="Complete your nutrition profile to unlock target-based progress.";
+      status.textContent=nutritionResult.errors.find(message=>message.includes("Progress")) || nutritionResult.errors.find(message=>message.includes("height")) || nutritionResult.errors[0] || "Complete your nutrition profile to unlock target-based progress.";
       percentageText.textContent="—";
       remainingText.textContent="Profile needed";
       progress.style.strokeDashoffset=String(circumference);
@@ -315,21 +340,23 @@
     const current=document.getElementById("currentWeight"),currentUnit=document.getElementById("currentWeightUnit"),display=document.getElementById("currentWeightDisplay");
     current.textContent=hasCurrent ? formatWeight(latest) : "Not set";
     currentUnit.textContent=unitLabel();
-    currentUnit.hidden=!hasCurrent;
-    display.setAttribute("aria-label",hasCurrent ? `Current weight ${formatWeight(latest)} ${unitLabel()}` : "Current weight not set");
+    currentUnit.hidden=!hasCurrent||FC.state.settings.profile.weightUnit==="st";
+    display.setAttribute("aria-label",hasCurrent ? `Current weight ${accessibleWeightText(latest)}` : "Current weight not set");
     const goalBadge=document.getElementById("weightGoalSummary");
     goalBadge.hidden=!hasGoal;
-    goalBadge.textContent=hasGoal ? `Goal ${formatWeight(goal)} ${unitLabel()}` : "";
+    goalBadge.textContent=hasGoal ? `Goal ${weightText(goal)}` : "";
+    if (hasGoal) goalBadge.setAttribute("aria-label",`Goal weight ${accessibleWeightText(goal)}`);
+    else goalBadge.removeAttribute("aria-label");
     const canShowProgress=hasCurrent&&hasGoal&&hasStart&&start!==goal;
     const progressTrack=document.getElementById("weightProgressTrack");
     progressTrack.hidden=!canShowProgress;
     progressTrack.setAttribute("aria-hidden",String(!canShowProgress));
     document.getElementById("weightProgress").style.width=canShowProgress ? Math.max(0,Math.min(100,((start-latest)/(start-goal))*100))+"%" : "0%";
-    document.getElementById("weightMessage").textContent=!hasCurrent ? "Log your first weight to begin tracking." : !hasGoal ? "Add a goal weight to track progress." : `${formatWeight(Math.max(0,latest-goal))} ${unitLabel()} remaining`;
+    document.getElementById("weightMessage").textContent=!hasCurrent ? "Log your first weight to begin tracking." : !hasGoal ? "Add a goal weight to track progress." : `${weightText(Math.max(0,latest-goal))} remaining`;
     const change=weights.length>1 ? latest-weights[weights.length-2].weight : null;
-    document.getElementById("weightChange").textContent = weights.length===0 ? "" : change===null ? "Add another weigh-in to reveal your trend" : `${change>0 ? "+" : ""}${formatWeight(change)} ${unitLabel()} since last entry`;
+    document.getElementById("weightChange").textContent = weights.length===0 ? "" : change===null ? "Add another weigh-in to reveal your trend" : `${change>0 ? "+" : change<0 ? "−" : ""}${weightDeltaText(change)} since last entry`;
     document.getElementById("weightHistory").innerHTML = weights.slice().reverse().map(entry=>
-      `<div class="row" style="padding:8px 0;border-top:1px solid var(--line)"><span>${entry.date}</span><strong>${formatWeight(entry.weight)} ${unitLabel()}</strong></div>`
+      `<div class="row" style="padding:8px 0;border-top:1px solid var(--line)"><span>${entry.date}</span><strong>${weightText(entry.weight)}</strong></div>`
     ).join("");
     drawChart(weights);
     drawWeightSparkline(weights);
@@ -404,8 +431,10 @@
     });
     context.fillStyle=chartMuted;
     context.font="12px -apple-system";
-    context.fillText(toDisplayWeight(max).toFixed(0)+" "+unitLabel(),2,pad+4);
-    context.fillText(toDisplayWeight(min).toFixed(0)+" "+unitLabel(),2,pad+height);
+    const chartUnit=FC.state.settings.profile.weightUnit==="st"?"lb":unitLabel();
+    const chartValue=value=>FC.state.settings.profile.weightUnit==="st"?value*FC.units.KG_TO_LB:toDisplayWeight(value);
+    context.fillText(chartValue(max).toFixed(0)+" "+chartUnit,2,pad+4);
+    context.fillText(chartValue(min).toFixed(0)+" "+chartUnit,2,pad+height);
   }
 
   function renderWater() {
@@ -499,12 +528,17 @@
     const nutrition = renderNutritionSummary();
     const calorieSummary = nutrition.complete ? `${nutrition.suggestedCalorieTarget.toLocaleString()} kcal` : "Nutrition profile needed";
     const current=latestWeightKg(),goal=settings.profile.goalWeightKg;
-    const weightSummary=current!==null&&goal!==null ? `${compactWeight(current)} ${unitLabel()} → ${compactWeight(goal)} ${unitLabel()}` : current!==null ? `${compactWeight(current)} ${unitLabel()}` : goal!==null ? `Goal ${compactWeight(goal)} ${unitLabel()}` : "";
+    const weightSummary=current!==null&&goal!==null ? `${compactWeight(current)} → ${compactWeight(goal)}` : current!==null ? compactWeight(current) : goal!==null ? `Goal ${compactWeight(goal)}` : "";
     document.getElementById("headerSummary").textContent = [weightSummary,calorieSummary,`${protocol} schedule`].filter(Boolean).join(" · ");
     const weightInput = document.getElementById("weightInput");
     weightInput.placeholder = settings.profile.weightUnit==="lb" ? "e.g. 247.8" : "e.g. 112.4";
     weightInput.min = settings.profile.weightUnit==="lb" ? "40" : "18";
     weightInput.max = settings.profile.weightUnit==="lb" ? "700" : "318";
+    const stones=settings.profile.weightUnit==="st";
+    weightInput.hidden=stones;
+    weightInput.disabled=stones;
+    document.getElementById("progressStoneFields").hidden=!stones;
+    document.querySelectorAll("#progressStoneFields input").forEach(field=>field.disabled=!stones);
   }
 
   function refreshForSettings() {
@@ -568,9 +602,17 @@
     else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
   });
   document.getElementById("saveWeight").addEventListener("click",()=>{
-    const entered = Number(document.getElementById("weightInput").value);
-    const weightKg = toKilograms(entered);
-    if (!entered || weightKg<18 || weightKg>318) return alert("Enter a valid weight.");
+    let weightKg;
+    if (FC.state.settings.profile.weightUnit==="st") {
+      const stones=Number(document.getElementById("weightStonesInput").value);
+      const pounds=Number(document.getElementById("weightPoundsInput").value);
+      if (!Number.isInteger(stones)||stones<0||!Number.isFinite(pounds)||pounds<0||pounds>=14) return alert("Enter pounds from 0 to 13.9.");
+      weightKg=FC.units.stonesToKilograms(stones,pounds);
+    } else {
+      const entered = Number(document.getElementById("weightInput").value);
+      weightKg = toKilograms(entered);
+    }
+    if (!Number.isFinite(weightKg)||weightKg<18||weightKg>318) return alert("Enter a valid weight.");
     const weights = getWeights();
     const existing = weights.find(entry=>entry.date===dateKey);
     if (existing) existing.weight=weightKg;
@@ -581,6 +623,8 @@
     FC.state.settings.nutrition.currentWeightKg=weightKg;
     FC.storage.saveSettings(FC.state.settings);
     document.getElementById("weightInput").value="";
+    document.getElementById("weightStonesInput").value="";
+    document.getElementById("weightPoundsInput").value="";
     renderProgress(); renderSettingsSummary();
   });
   document.querySelectorAll(".tab").forEach(button=>button.addEventListener("click",()=>activateView(button.dataset.view)));

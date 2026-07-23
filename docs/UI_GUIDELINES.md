@@ -375,6 +375,10 @@ Weight charts use subtle gridlines, a clear accent line, outlined points, readab
 
 Missing personal weights use an explicit text state such as “Not set” with an accessible “Current weight not set” label. Do not use zero, `NaN`, an unexplained dash, fictional goal badges, remaining-weight copy, or an active progress bar. A concise Log weight action may route to Progress. Current-only and goal-only states show only the value that genuinely exists.
 
+Paired measurement fields use a semantic legend and two explicitly labelled controls. Use two `minmax(0, 1fr)` columns when readable and stack them at the narrowest breakpoint. Inactive measurement controls are both hidden and disabled. Inline validation names the active unit field, such as pounds or inches, and focus returns to that field when scripted validation fails.
+
+All Settings rows and native date inputs use `min-width: 0`, `width: 100%`, `max-width: 100%`, and border-box sizing. Do not hide the native date-picker indicator or use a fixed width. These safeguards apply at iPhone widths, enlarged text, and 200% zoom.
+
 ## Compact Dashboard Cards
 
 Dashboard cards size to their content. A compact supporting card must not inherit the height of a larger hero card merely because the cards share a grid row. Use start alignment, content-sized rows, and a small purposeful minimum height. The Today weight summary keeps its current value, goal, remaining amount, and latest measured change together; its sparkline occupies no space until at least two real measurements exist.

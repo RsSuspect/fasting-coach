@@ -42,9 +42,10 @@ body {
     linear-gradient(180deg,var(--bg-deep),var(--bg) 28rem);
   color:var(--ink); line-height:1.45;
 }
-button,input,select { font:inherit; }
+button,input,select,textarea { font:inherit; }
 button,input,select,.choice span,.file-button { min-height:44px; border-radius:var(--radius-sm); }
-input,select { width:100%; border:1px solid var(--line-strong); padding:10px 12px; background:var(--control); color:var(--ink); }
+input,select,textarea { width:100%; max-width:100%; min-width:0; border:1px solid var(--line-strong); padding:10px 12px; background:var(--control); color:var(--ink); }
+input[type="date"] { display:block; inline-size:100%; min-inline-size:0; max-inline-size:100%; }
 button { border:0; padding:10px 15px; background:var(--accent); color:var(--accent-ink); font-weight:750; cursor:pointer; transition:transform .18s var(--ease),background .18s,box-shadow .18s; }
 button:hover { background:var(--accent-hover); }
 button:active { transform:scale(.98); }
@@ -136,7 +137,7 @@ body.settings-open { overflow:hidden; }
 .settings-group { min-width:0; margin:0; border:0; }
 .settings-group legend { padding:0 3px 9px; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
 .settings-list,.nutrition-summary { overflow:hidden; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-sm); }
-.setting-row { display:grid; gap:7px; padding:14px 16px; border-bottom:1px solid var(--line); }
+.setting-row { display:grid; min-width:0; grid-template-columns:minmax(0,1fr); gap:7px; padding:14px 16px; border-bottom:1px solid var(--line); }
 .setting-row:last-child { border-bottom:0; }
 .setting-row label,.setting-label { font-weight:680; }
 .setting-help { color:var(--muted); font-size:13px; line-height:1.45; }
@@ -172,6 +173,11 @@ body.settings-open { overflow:hidden; }
 .estimate-label { color:var(--muted); font-size:.72em; font-weight:550; }
 .split-fields,.macro-inputs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
 .split-fields label { display:grid; gap:6px; font-size:13px; }
+.paired-measurement { display:grid; min-width:0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:0; padding:0; border:0; }
+.paired-measurement legend { grid-column:1/-1; padding:0 0 6px; color:var(--muted); font-size:12px; font-weight:700; text-transform:none; letter-spacing:0; }
+.paired-measurement label { display:grid; min-width:0; gap:6px; font-size:13px; }
+.measurement-error { grid-column:1/-1; }
+.progress-stone-input { flex:1 1 auto; }
 .two-choice { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .schedule-editor-list,.fasting-schedule-editor { display:grid; gap:8px; margin-bottom:10px; }
 .schedule-editor-item,.fasting-day { min-width:0; padding:12px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--card); }
@@ -222,7 +228,7 @@ textarea { width:100%; max-width:100%; resize:vertical; }
   .fasting-day-fields { grid-template-columns:1fr; }
 }
 @media (max-width:360px) {
-  .macro-inputs,.split-fields { grid-template-columns:1fr; }
+  .macro-inputs,.split-fields,.paired-measurement { grid-template-columns:1fr; }
   .tabs { right:6px; left:6px; }
   .tab { font-size:9px; }
 }
