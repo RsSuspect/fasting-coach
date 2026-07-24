@@ -134,6 +134,12 @@ body.settings-open { overflow:hidden; }
 .settings-header h2 { margin:0; font-size:28px; }
 .close-button { width:44px; height:44px; padding:0; font-size:24px; line-height:1; }
 .settings-form { display:grid; gap:16px; }
+.settings-form.is-first-weight-onboarding > :not(#firstWeightOnboarding) { display:none; }
+.first-weight-onboarding { display:grid; gap:14px; }
+.first-weight-onboarding[hidden] { display:none; }
+.onboarding-copy { padding:16px; border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line)); border-radius:var(--radius-lg); background:color-mix(in srgb,var(--accent) 10%,var(--card)); }
+.onboarding-copy h3 { margin:0 0 7px; font-size:20px; }
+.onboarding-copy p { margin:0; color:var(--muted); line-height:1.5; }
 .settings-group { min-width:0; margin:0; border:0; }
 .settings-group legend { padding:0 3px 9px; color:var(--muted); font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
 .settings-list,.nutrition-summary { overflow:hidden; border:1px solid var(--line); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-sm); }

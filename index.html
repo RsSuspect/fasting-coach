@@ -168,7 +168,7 @@
     <div class="card">
       <h2>Log your weight</h2>
       <div class="row">
-        <input id="weightInput" type="number" min="40" max="700" step="0.1" placeholder="e.g. 112.4" aria-label="Weight" />
+        <input id="weightInput" type="number" min="40" max="700" step="0.01" placeholder="e.g. 112.4" aria-label="Weight" />
         <fieldset class="paired-measurement progress-stone-input" id="progressStoneFields" hidden><legend>Weight in stones and pounds</legend><label>Stones<input id="weightStonesInput" type="number" min="0" max="50" step="1" inputmode="numeric" /></label><label>Pounds<input id="weightPoundsInput" type="number" min="0" step="0.1" inputmode="decimal" /></label></fieldset>
         <button id="saveWeight">Save</button>
       </div>
@@ -226,18 +226,46 @@
     </div>
 
     <form class="settings-form" id="settingsForm">
+      <section class="first-weight-onboarding" id="firstWeightOnboarding" aria-labelledby="firstWeightOnboardingTitle" hidden>
+        <div class="onboarding-copy">
+          <h3 id="firstWeightOnboardingTitle">First, save your current weight</h3>
+          <p>First, enter your current weight and save it. We’ll use this to calculate your nutrition targets.</p>
+        </div>
+        <div class="settings-list">
+          <div class="setting-row">
+            <label for="onboardingWeight">Current weight (<span id="onboardingWeightUnitLabel">kg</span>)</label>
+            <input id="onboardingWeight" type="number" min="40" max="700" step="0.01" inputmode="decimal" autocomplete="off" />
+            <fieldset class="paired-measurement" id="onboardingStoneFields" hidden>
+              <legend>Current weight in stones and pounds</legend>
+              <label for="onboardingWeightStones">Stones<input id="onboardingWeightStones" type="number" min="0" max="50" step="1" inputmode="numeric" /></label>
+              <label for="onboardingWeightPounds">Pounds<input id="onboardingWeightPounds" type="number" min="0" step="0.1" inputmode="decimal" /></label>
+            </fieldset>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label" id="onboardingUnitLabel">Weight unit</span>
+            <div class="choice-grid" role="radiogroup" aria-labelledby="onboardingUnitLabel">
+              <label class="choice"><input type="radio" name="onboardingWeightUnit" value="kg" /><span>Kilograms</span></label>
+              <label class="choice"><input type="radio" name="onboardingWeightUnit" value="lb" /><span>Pounds</span></label>
+              <label class="choice"><input type="radio" name="onboardingWeightUnit" value="st" /><span>Stones and pounds</span></label>
+            </div>
+          </div>
+        </div>
+        <button id="saveCurrentWeight" type="button">Save Current Weight</button>
+        <p class="status-message" id="onboardingWeightStatus" role="status" aria-live="polite"></p>
+      </section>
+
       <fieldset class="settings-group">
         <legend>Profile</legend>
         <div class="settings-list">
           <div class="setting-row">
             <label for="startingWeightSetting">Starting weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="startingWeightSetting" name="startingWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" placeholder="Not set" />
+            <input id="startingWeightSetting" name="startingWeight" type="number" min="40" max="700" step="0.01" inputmode="decimal" placeholder="Not set" />
             <fieldset class="paired-measurement" id="startingStoneFields" hidden><legend>Starting weight in stones and pounds</legend><label for="startingWeightStones">Stones<input id="startingWeightStones" type="number" min="0" max="50" step="1" inputmode="numeric" /></label><label for="startingWeightPounds">Pounds<input id="startingWeightPounds" type="number" min="0" step="0.1" inputmode="decimal" /></label></fieldset>
-            <span class="setting-help">Your historical starting point. Current weight comes from your latest Progress weigh-in.</span>
+            <span class="setting-help">Your historical starting point. Current weight is already saved in Progress and comes from your latest weigh-in.</span>
           </div>
           <div class="setting-row">
             <label for="goalWeightSetting">Goal weight (<span class="settingsWeightUnit">kg</span>)</label>
-            <input id="goalWeightSetting" name="goalWeight" type="number" min="40" max="700" step="0.1" inputmode="decimal" placeholder="Not set" />
+            <input id="goalWeightSetting" name="goalWeight" type="number" min="40" max="700" step="0.01" inputmode="decimal" placeholder="Not set" />
             <fieldset class="paired-measurement" id="goalStoneFields" hidden><legend>Goal weight in stones and pounds</legend><label for="goalWeightStones">Stones<input id="goalWeightStones" type="number" min="0" max="50" step="1" inputmode="numeric" /></label><label for="goalWeightPounds">Pounds<input id="goalWeightPounds" type="number" min="0" step="0.1" inputmode="decimal" /></label></fieldset>
             <span class="field-error" id="goalWeightError" role="alert"></span>
           </div>

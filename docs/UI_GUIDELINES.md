@@ -167,6 +167,8 @@ Forms should:
 - provide inline validation
 - avoid unnecessary fields
 
+When Progress history is empty, Settings uses an inline first-weight step containing only Current Weight, its unit selector, and the dedicated save action. Keep the prompt concise, hide and disable the normal Settings form, and confirm the verified transition to the full form through the existing Settings status live region; do not add a separate modal.
+
 Large forms should be broken into sections.
 
 ---

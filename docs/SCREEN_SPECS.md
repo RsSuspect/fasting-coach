@@ -129,11 +129,19 @@ The header constructs its summary from available values without empty separators
 
 The Today weight card always retains its title. With neither value, it announces “Current weight not set,” hides the goal and progress presentation, and prompts the user to log a first weight. With current weight only, it shows that weight and prompts for a goal without calculating remaining weight. With goal only, it shows the goal badge, leaves current weight unset, and prompts for a first weigh-in. With both current and goal it shows remaining weight; goal progress appears only when the historical starting weight is also available. Trend text and charts use stored weigh-ins only.
 
+After the one-time legacy seeded-goal migration, the empty header reads `Nutrition profile needed · 16:8 schedule`; it must not render the former `Goal 80 kg` seed. A deliberately configured goal-only state remains `Goal 80 kg · Nutrition profile needed · 16:8 schedule`.
+
 ### Profile Units and Validation
 
 Profile offers Kilograms, Pounds, and Stones and pounds as one weight-unit selector. Stones mode replaces each active single weight input with labelled Stones and Pounds fields; pounds must remain below 14. Progress uses the same preference without changing stored history. Height has an independent Centimetres or Feet and inches selector; inches must remain below 12. Inactive fields are hidden and disabled.
 
-Saving Settings validates only values the user entered. Current weight is never a Profile field, an empty goal remains valid, and an incomplete nutrition estimate does not block unrelated Settings changes. The live nutrition summary instead identifies genuinely missing calculation inputs, including a Progress weigh-in, height, goal for automatic weight-loss calculation, age, activity level, or future target date.
+Saving Settings validates only values the user entered. Current weight is never a Profile field, an empty goal remains valid, and an incomplete nutrition estimate does not block unrelated Settings changes. Current weight always comes from the latest valid Progress weigh-in. In the current automatic weight-loss model, an edited goal produces the direction error only when both current and goal are valid canonical kilogram values and goal is greater than or equal to current. Starting weight, legacy nutrition weights, rounded display strings, and inactive unit controls are not comparison inputs. The live nutrition summary identifies genuinely missing calculation inputs, including a Progress weigh-in, height, goal for automatic weight-loss calculation, age, activity level, or future target date.
+
+When no current Progress weigh-in exists, Settings remains saveable and the live nutrition readiness guidance says `Log a current weight in Progress to calculate nutrition targets.` This guidance is not a form-validation error.
+
+When Progress history is empty, Settings shows a dedicated first-weight screen containing only Current Weight, the weight-unit selector, and Save Current Weight. The normal Profile, Nutrition, schedule, fasting, appearance, and Save Settings controls are hidden and disabled. The onboarding prompt replaces the normal missing-current-weight nutrition warning within Settings. A valid submission saves the canonical starting weight and exactly one current-local-date Progress record transactionally, verifies it through `latestWeightKg()`, refreshes all dependent screens, remains in Settings, reveals the normal form, announces success, and focuses Goal Weight. Invalid input or a storage failure leaves Step 1 active and writes neither partial Settings nor history.
+
+Repeated saves, unit changes, unrelated edits, reloads, imports, and migrations do not seed additional records. If any valid Progress entry exists, editing starting weight changes only the historical starting point and never edits, replaces, redates, or appends to Progress history.
 
 The Nutrition target-date input fills a `minmax(0, 1fr)` row with zero intrinsic minimum width and a 100% maximum width. Its native iOS calendar control remains visible and contained at phone widths, enlarged text, and 200% zoom.
 
@@ -861,6 +869,8 @@ Examples:
 - This target requires a faster rate of loss than generally recommended.
 
 Do not clear valid fields when one field has an error.
+
+The direction message applies only to automatic weight-loss estimation with a valid current Progress weigh-in and a valid goal whose canonical kilogram value is greater than or equal to current. It does not apply when current or goal is absent, during manual calorie mode, or while saving unrelated unchanged settings.
 
 ## 10.7 Safety Notice
 
