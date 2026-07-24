@@ -37,8 +37,10 @@
     };
     const age = Number(profile.age);
     const heightCm = Number(profile.heightCm);
-    const currentWeightKg = Number(profile.currentWeightKg);
-    const goalWeightKg = Number(profile.goalWeightKg);
+    const hasCurrentWeight = profile.currentWeightKg!==null && profile.currentWeightKg!=="" && profile.currentWeightKg!==undefined;
+    const hasGoalWeight = profile.goalWeightKg!==null && profile.goalWeightKg!=="" && profile.goalWeightKg!==undefined;
+    const currentWeightKg = hasCurrentWeight ? Number(profile.currentWeightKg) : null;
+    const goalWeightKg = hasGoalWeight ? Number(profile.goalWeightKg) : null;
     const targetDate = dateAtLocalMidnight(profile.targetDate);
     const today = todayAtLocalMidnight();
     const mealsPerDay = Number(profile.mealsPerDay);
@@ -48,12 +50,12 @@
     if (!FC.constants.NUTRITION_SEXES.includes(profile.sex)) result.errors.push("Choose the sex used for calorie estimation.");
     if (profile.heightCm===null || profile.heightCm==="" || profile.heightCm===undefined) result.errors.push("Add your height to calculate nutrition targets.");
     else if (!Number.isFinite(heightCm) || heightCm<100 || heightCm>250) result.errors.push("Enter a height between 100 and 250 cm.");
-    if (profile.currentWeightKg===null || profile.currentWeightKg==="" || profile.currentWeightKg===undefined) result.errors.push("Log a current weight in Progress to calculate nutrition targets.");
+    if (!hasCurrentWeight) result.errors.push("Log a current weight in Progress to calculate nutrition targets.");
     else if (!Number.isFinite(currentWeightKg) || currentWeightKg<18 || currentWeightKg>318) result.errors.push("The latest Progress weigh-in is not valid for nutrition calculations.");
     const automatic=profile.calorieMode!=="manual";
-    if (automatic && (profile.goalWeightKg===null || profile.goalWeightKg==="" || profile.goalWeightKg===undefined)) result.errors.push("Add a goal weight to calculate an automatic nutrition target.");
-    else if (profile.goalWeightKg!==null && profile.goalWeightKg!=="" && profile.goalWeightKg!==undefined && (!Number.isFinite(goalWeightKg) || goalWeightKg<18 || goalWeightKg>318)) result.errors.push("Enter a valid goal weight.");
-    if (Number.isFinite(currentWeightKg) && profile.goalWeightKg!==null && Number.isFinite(goalWeightKg) && goalWeightKg>=currentWeightKg) result.errors.push("Goal weight must be below current weight for weight-loss mode.");
+    if (automatic && !hasGoalWeight) result.errors.push("Add a goal weight to calculate an automatic nutrition target.");
+    else if (hasGoalWeight && (!Number.isFinite(goalWeightKg) || goalWeightKg<18 || goalWeightKg>318)) result.errors.push("Enter a valid goal weight.");
+    if (automatic && hasCurrentWeight && Number.isFinite(currentWeightKg) && hasGoalWeight && Number.isFinite(goalWeightKg) && goalWeightKg>=currentWeightKg) result.errors.push("Goal weight must be below current weight for weight-loss mode.");
     if (!FC.constants.ACTIVITY_LEVELS.includes(profile.activityLevel)) result.errors.push("Choose an activity level to calculate nutrition targets.");
     if (!targetDate || targetDate<=today) result.errors.push("Choose a target date in the future.");
     if (!Number.isInteger(mealsPerDay) || mealsPerDay<1 || mealsPerDay>5) result.errors.push("Choose between one and five meals per day.");
@@ -63,7 +65,7 @@
 
     if (targetDate && targetDate>today) {
       result.daysUntilTarget = Math.round((targetDate-today)/86400000);
-      if (Number.isFinite(currentWeightKg) && profile.goalWeightKg!==null && profile.goalWeightKg!=="" && profile.goalWeightKg!==undefined && Number.isFinite(goalWeightKg) && goalWeightKg<currentWeightKg) {
+      if (hasCurrentWeight && Number.isFinite(currentWeightKg) && hasGoalWeight && Number.isFinite(goalWeightKg) && goalWeightKg<currentWeightKg) {
         result.requestedWeeklyLossKg = (currentWeightKg-goalWeightKg)/(result.daysUntilTarget/7);
         if (result.requestedWeeklyLossKg>0.9) result.warnings.push("This target requires more than approximately 0.9 kg (2 lb) of loss per week. Consider a later date and seek professional guidance.");
       }

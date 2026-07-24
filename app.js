@@ -317,8 +317,7 @@
   }
 
   function latestWeightKg() {
-    const weights = getWeights();
-    return weights.length ? Number(weights[weights.length-1].weight) : null;
+    return FC.storage.latestWeightKg();
   }
 
   function effectiveNutritionProfile() {
@@ -613,12 +612,7 @@
       weightKg = toKilograms(entered);
     }
     if (!Number.isFinite(weightKg)||weightKg<18||weightKg>318) return alert("Enter a valid weight.");
-    const weights = getWeights();
-    const existing = weights.find(entry=>entry.date===dateKey);
-    if (existing) existing.weight=weightKg;
-    else weights.push({date:dateKey,weight:weightKg});
-    weights.sort((a,b)=>a.date.localeCompare(b.date));
-    FC.storage.saveWeights(weights);
+    FC.storage.upsertWeight(weightKg,localDateKey());
     if (FC.state.settings.profile.startingWeightKg===null) FC.state.settings.profile.startingWeightKg=weightKg;
     FC.state.settings.nutrition.currentWeightKg=weightKg;
     FC.storage.saveSettings(FC.state.settings);
