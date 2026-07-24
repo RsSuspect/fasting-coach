@@ -167,6 +167,8 @@ Forms should:
 - provide inline validation
 - avoid unnecessary fields
 
+When Progress history is empty, Settings uses an inline first-weight step containing only Current Weight, its unit selector, and the dedicated save action. Keep the prompt concise, hide and disable the normal Settings form, and confirm the verified transition to the full form through the existing Settings status live region; do not add a separate modal.
+
 Large forms should be broken into sections.
 
 ---
@@ -374,6 +376,10 @@ Meal sections are compact rows. Empty sections show the meal name, zero calories
 Weight charts use subtle gridlines, a clear accent line, outlined points, readable axis labels, and no fabricated intermediate values. One entry appears as a centred point with guidance to add another weigh-in. The Today sparkline appears only when at least two stored measurements exist.
 
 Missing personal weights use an explicit text state such as “Not set” with an accessible “Current weight not set” label. Do not use zero, `NaN`, an unexplained dash, fictional goal badges, remaining-weight copy, or an active progress bar. A concise Log weight action may route to Progress. Current-only and goal-only states show only the value that genuinely exists.
+
+Paired measurement fields use a semantic legend and two explicitly labelled controls. Use two `minmax(0, 1fr)` columns when readable and stack them at the narrowest breakpoint. Inactive measurement controls are both hidden and disabled. Inline validation names the active unit field, such as pounds or inches, and focus returns to that field when scripted validation fails.
+
+All Settings rows and native date inputs use `min-width: 0`, `width: 100%`, `max-width: 100%`, and border-box sizing. Do not hide the native date-picker indicator or use a fixed width. These safeguards apply at iPhone widths, enlarged text, and 200% zoom.
 
 ## Compact Dashboard Cards
 
